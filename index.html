@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>.log — archivo de arquitecturas desaparecidas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Sustituto provisorio de Ufficio Mono (fuente trial, no disponible para web) -->
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --line:#9a9a9a;
+    --ink:#000;
+    --blue:#085cf0;
+    --blue-soft:rgba(8,92,240,.64);
+    --sel:#bfd9fd;
+    --nav-fill:#f0f0f0;
+    --nav-hover:#e3e3e3;
+    --mono:"Ufficio Mono","JetBrains Mono",ui-monospace,monospace;
+    --row:84px;           /* alto de fila de la grilla: todo se alinea a este módulo */
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:#fff;overflow:hidden;font-family:var(--mono);color:var(--ink)}
+  #stage{position:fixed;inset:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+  #stage::-webkit-scrollbar{display:none}
+  svg{display:block;overflow:visible}
+  .grid line{stroke:var(--line);stroke-width:.6;vector-effect:non-scaling-stroke}
+  .cell polygon{fill:transparent;transition:fill .15s}
+  .cell text{font-family:var(--mono);font-weight:300;font-size:16px;fill:var(--blue-soft);text-transform:uppercase;transition:fill .15s;pointer-events:none}
+  .cell:hover polygon,.cell:focus-visible polygon{fill:var(--nav-hover)}
+  .cell:hover text,.cell:focus-visible text{fill:var(--blue)}
+  /* sección activa: azul pleno con letra blanca */
+  .cell.on polygon{fill:var(--blue)}
+  .cell.on text{fill:#fff;font-weight:500}
+  .cell:focus{outline:none}
+  .navbg{fill:var(--nav-fill)}
+  /* logo de inicio */
+  /* sin fundidos: cada módulo se prende y se apaga de golpe */
+  .mod{fill:#0033ff;opacity:0;animation:mod .9s linear forwards}
+  @keyframes mod{0%,99.9%{opacity:1}100%{opacity:0}}
+  .logo-g .pz{fill:#0033ff;stroke:#9a9a9a;stroke-width:1;stroke-linejoin:miter}   /* bordes como la grilla */
+  a.logo-g{cursor:pointer}
+  .logo-txt rect{fill:#fff}
+  .logo-txt text{font-family:var(--mono);font-weight:300;font-size:40px;fill:#fff;letter-spacing:.04em}
+  .logo-g.anim .pz,.logo-g.anim .logo-txt{opacity:0;animation:pz .01s linear forwards}
+  @keyframes pz{from,to{opacity:1}}
+
+  /* ---------- CATÁLOGO ---------- */
+  #catalogo{position:fixed;left:0;right:0;top:var(--row);bottom:0;display:none;pointer-events:none}
+  body.r-catalogo #catalogo{display:block}
+
+  /* ---------- SOBRE ---------- */
+  #sobre{position:fixed;left:0;right:0;top:0;bottom:0;display:none;pointer-events:none}
+  body.r-sobre #sobre{display:block}
+  /* renglones de 84px: la base de cada línea cae sobre una línea de la grilla */
+  /* el texto corre por debajo del menú, que queda fijo */
+  #sobre .clip{position:absolute;left:0;right:0;top:var(--row);bottom:0;overflow:hidden}
+  #sobre p{display:none}
+  #sobre p.act,#sobre p.sale{display:block}
+  #sobre p{position:absolute;left:var(--sx,117px);top:calc(var(--row) + 22px);width:min(1080px,calc(100vw - var(--sx,117px) - 40px));
+           font-family:var(--mono);font-weight:300;font-size:51px;line-height:var(--row);text-transform:uppercase;color:#000;margin:0}
+  #sobre .azul{color:var(--blue);font-weight:500}
+  @media (max-width:900px){ #sobre p{font-size:28px;line-height:42px;top:26px} }
+  /* logo chico (rosa) arriba a la izquierda en las páginas internas */
+  .mini .pz{fill:#ff4684;stroke:#ff4684}
+  .mini text{font-family:var(--mono);font-weight:400;font-size:40px;fill:#fff}
+  .mini rect{fill:#fff}
+  /* construcción del menú: sin fundidos, cada módulo aparece de golpe (azul un instante y después gris) */
+  .navbg.build,.mini .mb{visibility:hidden;animation:aparece 0s steps(1) forwards}
+  .cell.build{visibility:hidden;animation:aparece 0s steps(1) forwards}
+  .cell.build polygon{animation:destello .35s steps(1) forwards;animation-delay:inherit}
+  .cell.build.on polygon{animation:none}
+  @keyframes aparece{to{visibility:visible}}
+  @keyframes destello{0%{fill:var(--blue)}100%{fill:var(--nav-fill)}}
+  .snap{position:fixed;inset:0;z-index:50;background:#fff;pointer-events:none;overflow:hidden}
+  .snap.debajo{z-index:0}
+  #stage{background:#fff;z-index:1}
+  #sobre,#catalogo{z-index:2}
+  .snap svg{position:absolute;left:0;top:0}
+  .snap .sobre-snap{display:block;position:absolute;inset:0}
+  .sobre-snap p{position:absolute;left:var(--sx,117px);top:calc(var(--row)*2 + 22px);width:min(1080px,calc(100vw - var(--sx,117px) - 40px));
+           font-family:var(--mono);font-weight:300;font-size:51px;line-height:var(--row);text-transform:uppercase;color:#000;margin:0}
+  .sobre-snap .azul{color:var(--blue);font-weight:500}
+
+  /* columna de lugares */
+  #lugares{position:absolute;left:0;top:0;bottom:0;width:430px;display:flex;flex-direction:column}
+  #lugares-head,#lugares-list{pointer-events:none}
+  #lugares-list{flex:1 1 auto;overflow-y:auto;scrollbar-width:none}
+  #lugares-list::-webkit-scrollbar{display:none}
+  .lug,.head{pointer-events:auto}
+  /* colores del frame "MacBook Air - 178": celdas grises, seleccionada azul, cabecera celeste */
+  .lug polygon{fill:#f0f0f0;stroke:var(--line);stroke-width:.6;vector-effect:non-scaling-stroke;transition:fill .15s}
+  .lug text{font-family:var(--mono);font-weight:500;font-size:14px;fill:#000;text-transform:uppercase;pointer-events:none;transition:fill .15s}
+  .lug{cursor:pointer}
+  .lug:hover polygon{fill:#e3e3e3}
+  .lug.on polygon{fill:var(--blue)}
+  .lug.on text{fill:#fff}
+  .lug:focus{outline:none}
+  .lug:focus-visible polygon{stroke:var(--blue);stroke-width:1.5}
+  .head polygon{fill:#bad4f8;stroke:var(--line);stroke-width:.6;vector-effect:non-scaling-stroke}
+  .head text{font-family:var(--mono);font-weight:600;font-size:16px;fill:var(--blue);text-transform:uppercase}
+
+  /* área principal: cada bloque mide múltiplos de 84px y el scroll se acomoda de a una fila */
+  #main{position:absolute;left:430px;right:0;top:0;bottom:0;overflow-y:auto;scrollbar-width:none;padding:0 32px calc(var(--row)*2) 32px;pointer-events:auto}
+  #main::-webkit-scrollbar{display:none}
+  #bar{position:fixed;right:0;width:3px;border-radius:1px;background:var(--blue);top:0;height:0;transition:opacity .2s;pointer-events:none}
+
+  .toolbar{height:var(--row);display:none;align-items:flex-end;padding-bottom:12px}
+  .boxed{position:relative;background:#fff;max-width:1040px}
+  .boxed::after{content:"";position:absolute;inset:0;border:1px solid #000;pointer-events:none}
+  .r{height:var(--row);border-bottom:1px solid #d6d6d6;overflow:hidden}
+  .r:last-child{border-bottom:0}
+  .k{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--blue)}
+
+  /* estado vacío: registro */
+  .log-head{display:flex;justify-content:space-between;align-items:center;padding:0 22px;border-bottom-color:#000}
+  .log-head h1{font-size:14px;font-weight:800;text-transform:uppercase;color:var(--blue)}
+  .log-line{display:grid;grid-template-columns:120px 1fr auto;gap:16px;align-items:center;width:100%;padding:0 22px;border:0;border-bottom:1px solid #d6d6d6;background:#fff;font:inherit;font-size:14px;text-align:left;cursor:pointer;text-transform:uppercase;color:#000}
+  .log-line:hover{background:#eef4fe}
+  .log-line .yr{color:var(--blue);font-weight:500}
+  .log-line .st{font-size:12px;color:#555}
+  .log-hint{display:flex;align-items:center;padding:0 22px;font-size:12px;color:#555;border-top:1px solid #000}
+
+  /* ficha */
+  /* columna de fotos: 685px = 6 filas de alto con la proporción de las fotos de archivo */
+  /* --ph = filas de alto de la foto (lo calcula el script según la pantalla para que foto + ficha entren completas);
+     el ancho sale de la proporción de las fotos de archivo (≈1,36) */
+  :root{--ph:6}
+  /* tamaño continuo: --fw ancho, --fh alto de foto, --k escala de la ficha (los calcula fitRows según la pantalla) */
+  :root{--fw:571px;--fh:420px;--k:1}
+  .ficha,.fotos{width:min(var(--fw),100%);margin-left:auto;margin-right:auto}
+  .ficha .foto,.fotos figure{height:var(--fh);background:#fff;overflow:hidden}
+  /* ficha técnica: 3 filas de grilla (42+42+84+42+42 = 252) */
+  .tabla{position:relative;background:#fff;font-size:max(11px,calc(13px*var(--k)));line-height:1.3}
+  .tabla::after{content:"";position:absolute;inset:0;border:.8px solid #000;pointer-events:none}
+  .tabla > div{display:grid;grid-template-columns:calc(118px*var(--k)) 1fr;align-items:center;height:calc(42px*var(--k));padding:0 calc(10px*var(--k));border-top:.8px solid #000}
+  .tabla > div:first-child{border-top:0}
+  .tabla > div.alta{height:calc(84px*var(--k))}
+  .tabla dt,.tabla dd{font-weight:400}
+  .ph{width:100%;height:100%;background:repeating-linear-gradient(135deg,#f3f3f3 0 10px,#fafafa 10px 20px);display:flex;align-items:center;justify-content:center;color:#888;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+  #main.detalle{padding-bottom:0}
+  /* foto + ficha fijas; las fotos se apilan encima de la principal */
+  .pin{position:sticky;top:0;z-index:1;padding-top:var(--pt,28px)}  /* centrado vertical: lo calcula fitRows */
+  .ficha .foto{position:relative;overflow:visible}
+  .ficha .foto > img{display:block;width:100%;height:100%;object-fit:cover}
+  .pila{position:absolute;inset:0;pointer-events:none}
+  .tabla.oculta{visibility:hidden}
+  /* barra azul bajo la foto + ficha plegable */
+  .barra{display:flex;align-items:center;width:100%;height:max(22px,calc(26px*var(--k)));padding:0 calc(8px*var(--k));border:0;background:var(--blue);cursor:pointer}
+  .barra svg{transition:transform .2s;flex:0 0 auto}
+  .barra .tg{flex:1 1 auto;min-width:0;display:flex;align-items:center;height:100%;padding:0;border:0;background:none;cursor:pointer;color:#fff;text-align:left}
+  .barra .masinfo{flex:0 0 auto;margin-left:10px;padding:2px 8px;border:1px solid #fff;font-family:var(--mono);font-size:max(10px,calc(11px*var(--k)));line-height:1.2;color:#fff;text-transform:uppercase;letter-spacing:.04em;text-decoration:none;white-space:nowrap}
+  .barra .masinfo:hover,.barra .masinfo:focus-visible{background:#fff;color:var(--blue);outline:none}
+
+  /* el #hash enfoca la sección del mismo id: sin marco de foco */
+  #contactar:focus,#blog:focus,#buscador:focus,#sobre:focus,#catalogo:focus,#linea:focus{outline:none}
+  /* ---------- CONTACTAR ---------- */
+  #contactar{position:fixed;left:0;right:0;top:var(--row);bottom:0;display:none;z-index:2;overflow-y:auto}
+  #contactar:focus{outline:none}
+  body.r-contactar #contactar{display:block}
+  .ct{width:min(1040px,100% - 32px);margin:0 auto;padding:var(--row) 0 80px}
+  .ct-titulo{margin:0 0 32px -36px}
+  .ct-titulo span{font-size:40px;padding:16px 110px 16px 72px;clip-path:polygon(0 0,100% 0,calc(100% - 56px) 100%,48px 100%)}
+  .ct-form{background:#fedee3;border:1px solid #5a7cf0;padding:20px 44px 28px 36px;font-family:var(--mono)}
+  .ct-h{margin:0 0 10px 6px;font-size:16px;font-weight:800;color:#4f78f0;text-transform:uppercase}
+  .ct-box{border:1px solid #5a7cf0}
+  .ct-nombre{display:flex;align-items:center;gap:8px;height:64px;padding:0 6px;border-bottom:1px solid #5a7cf0;font-size:16px;color:#4f78f0;text-transform:uppercase}
+  .ct-nombre input{flex:1;border:0;background:transparent;font:inherit;color:#000;text-transform:none;outline:none}
+  .ct-box textarea{display:block;width:100%;min-height:260px;padding:18px 6px;border:0;background:transparent;font-family:var(--mono);font-size:14px;line-height:1.5;resize:vertical;outline:none}
+  .ct-box textarea::placeholder{color:#777}
+  .ct-fotos{display:flex;flex-wrap:wrap;gap:10px;padding:0 6px}
+  .ct-fotos:not(:empty){padding:10px 6px 12px;border-top:1px dashed #5a7cf0}
+  .ct-fotos figure{position:relative;margin:0}
+  .ct-fotos img{display:block;height:90px;width:auto;border:1px solid #5a7cf0}
+  .ct-fotos button{position:absolute;top:2px;right:2px;width:20px;height:20px;border:0;background:var(--blue);color:#fff;font:12px var(--mono);cursor:pointer}
+  .ct-pie{display:flex;align-items:center;gap:16px;margin-top:20px}
+  .ct-sumar{font-size:13px;color:var(--blue);text-transform:uppercase;cursor:pointer;padding:6px 10px;border:1px solid var(--blue);background:#fff}
+  .ct-sumar:hover{background:var(--blue);color:#fff}
+  .ct-msg{flex:1;font-size:13px;color:#333}
+  .ct-pub{padding:8px 26px;border:0;background:var(--blue);color:#fff;font:13px var(--mono);text-transform:uppercase;cursor:pointer}
+  .ct-pub:hover{background:#0033ff}
+  .ct-box:focus-within,.ct-sumar:focus-within{outline:2px solid var(--blue);outline-offset:2px}
+  .post-nuevo .post-autor{background:#cfe0ff}
+  .bl-top{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap}
+  .bl-nuevo{margin-top:22px;padding:10px 20px;border:1px solid var(--blue);background:#fff;color:var(--blue);font:14px var(--mono);text-transform:uppercase;cursor:pointer}
+  .bl-nuevo:hover,.bl-nuevo[aria-expanded=true]{background:var(--blue);color:#fff}
+  .bl-form{margin:-24px 0 64px;background:#fedee3;border:1px solid #5a7cf0;padding:0;font-family:var(--mono)}
+  .bl-form[hidden]{display:none}
+  .bl-form .ct-nombre{border-bottom:1px solid #5a7cf0;padding:0 16px}
+  .bl-form textarea{display:block;width:100%;min-height:140px;padding:16px;border:0;background:transparent;font-family:var(--mono);font-size:14px;line-height:1.5;resize:vertical;outline:none}
+  .bl-form .ct-fotos{padding:0 16px}
+  .bl-form .ct-pie{margin:0;padding:14px 16px;border-top:1px solid #5a7cf0}
+  .bl-cancelar{padding:8px 16px;border:0;background:none;color:#555;font:13px var(--mono);text-transform:uppercase;cursor:pointer}
+  .ct-gracias{display:none;background:#fedee3;border:1px solid #5a7cf0;padding:72px 44px;text-align:center;font-family:var(--mono)}
+  .ct.enviado .ct-form{display:none}
+  .ct.enviado .ct-gracias{display:block}
+  .ct-g1{margin:0 0 16px;font-size:30px;font-weight:500;color:var(--blue);text-transform:uppercase}
+  .ct-g2{margin:0 0 40px;font-size:18px}
+  .ct-otro{padding:8px 22px;border:1px solid var(--blue);background:#fff;color:var(--blue);font:13px var(--mono);text-transform:uppercase;cursor:pointer}
+  .ct-otro:hover{background:var(--blue);color:#fff}
+  .post-fotos{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:2px;background:#011b7f}
+  @media (max-width:800px){ .ct-titulo span{font-size:22px;padding:12px 60px 12px 40px} .ct-form{padding:16px} .ct-pie{flex-wrap:wrap} }
+
+
+  /* ---------- MAPA 3D ---------- */
+  #mapa{position:fixed;left:0;right:0;top:var(--row);bottom:0;display:none;z-index:2;background:#fff}
+  body.r-mapa #mapa{display:block}
+  #mapa:focus{outline:none}
+  #mapa-canvas{position:absolute;inset:0}
+  #mapa-canvas canvas{display:block;cursor:grab}
+  #mapa-canvas canvas:active{cursor:grabbing}
+  #mapa-etiquetas{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+  .mp-etq{position:absolute;left:0;top:0;pointer-events:auto;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:6px 10px;background:var(--blue);color:#fff;border:0;font:500 11px var(--mono);text-transform:uppercase;text-align:left;cursor:pointer;white-space:nowrap}
+  .mp-etq span{font-weight:400;font-size:10px;text-transform:none;opacity:.8}
+  .mp-etq:hover{background:#011b7f}
+  .mp-pin{background:#ff4684;cursor:default}
+  .mp-pin i{font-style:normal;opacity:.8}
+  .mp-panel{position:absolute;left:24px;top:24px;width:300px;background:#fff;border:1px solid var(--blue);font-family:var(--mono);z-index:3}
+  .mp-panel h2{margin:0;padding:10px 14px;background:var(--blue);color:#fff;font:500 14px var(--mono);text-transform:uppercase;letter-spacing:.04em}
+  #mapa-buscar{display:flex;border-bottom:1px solid var(--blue)}
+  #mapa-buscar input{flex:1;min-width:0;border:0;padding:10px 12px;font:13px var(--mono);outline:none}
+  #mapa-buscar button{border:0;border-left:1px solid var(--blue);background:#fff;color:var(--blue);padding:0 12px;font:500 12px var(--mono);text-transform:uppercase;cursor:pointer}
+  #mapa-buscar button:hover{background:var(--blue);color:#fff}
+  #mapa-msg{padding:8px 12px;font-size:11px;color:#555;min-height:14px;border-bottom:1px solid #d9d9d9}
+  #mapa-msg i{font-style:normal;color:#999}
+  #mapa-lugares{list-style:none;margin:0;padding:6px 0}
+  #mapa-lugares button{display:block;width:100%;text-align:left;border:0;background:none;padding:6px 14px;font:12px var(--mono);color:#011b7f;cursor:pointer}
+  #mapa-lugares button:hover{background:var(--blue);color:#fff}
+  #mapa-lugares button::before{content:"■ ";color:var(--blue)}
+  #mapa-lugares button:hover::before{color:#fff}
+  .mp-ayuda{padding:8px 14px 10px;font-size:10px;color:#888;border-top:1px solid #d9d9d9;line-height:1.5}
+  #mapa-tip{position:absolute;pointer-events:none;padding:3px 7px;background:#fff;border:1px solid #9a9a9a;font:11px var(--mono);color:#333;white-space:nowrap}
+  #mapa-cargando{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:13px var(--mono);color:var(--blue);text-transform:uppercase}
+  .mp-cred{position:absolute;right:10px;bottom:8px;font:10px var(--mono);color:#999}
+  @media (max-width:800px){ .mp-panel{left:8px;right:8px;top:8px;width:auto} #mapa-lugares,.mp-ayuda{display:none} }
+
+  /* ---------- BUSCADOR ---------- */
+  #buscador{position:fixed;left:0;right:0;top:var(--row);bottom:0;display:none;z-index:2;overflow-y:auto}
+  body.r-buscador #buscador{display:block}
+  #buscador:focus{outline:none}
+  .bu{width:min(1180px,100% - 32px);margin:0 auto;padding:48px 0 120px}
+  .bu-cols{display:grid;grid-template-columns:280px 1fr;gap:48px;align-items:start}
+  .bu-filtros{position:sticky;top:24px;background:#fff;border:1px solid #011b7f;font-family:var(--mono)}
+  .bu-filtros input[type=search]{width:100%;box-sizing:border-box;border:0;border-bottom:1px solid #011b7f;padding:12px 14px;font:13px var(--mono);outline:none;background:#fff}
+  .bu-grupo{padding:12px 14px 14px;border-bottom:1px solid #d9d9d9}
+  .bu-grupo:last-of-type{border-bottom:0}
+  .bu-grupo h3{margin:0 0 10px;font:500 11px var(--mono);color:#011b7f;text-transform:uppercase;letter-spacing:.06em}
+  .bu-chips{display:flex;flex-wrap:wrap;gap:6px}
+  .bu-chip{border:1px solid var(--blue);background:#fff;color:var(--blue);padding:5px 9px;font:11px var(--mono);cursor:pointer}
+  .bu-chip:hover{background:#e8efff}
+  .bu-chip.on{background:var(--blue);color:#fff}
+  .bu-chip[disabled]{border-color:#d9d9d9;color:#bbb;cursor:default;background:#fff}
+  .bu-chip small{opacity:.65;margin-left:4px}
+  .bu-rango{display:flex;align-items:center;gap:8px;font:12px var(--mono);color:#011b7f}
+  .bu-rango input{width:64px;border:1px solid var(--blue);padding:5px 6px;font:12px var(--mono);color:#011b7f;outline:none}
+  .bu-check{display:flex;align-items:center;gap:8px;font:12px var(--mono);color:#011b7f;cursor:pointer}
+  .bu-check input{accent-color:var(--blue)}
+  .bu-pie{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--blue);color:#fff;font:12px var(--mono);text-transform:uppercase}
+  .bu-pie button{border:0;background:none;color:#fff;font:12px var(--mono);text-transform:uppercase;cursor:pointer;text-decoration:underline}
+  .bu-res{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:28px}
+  .bu-card{border:1px solid #011b7f;background:#fff;display:flex;flex-direction:column;font-family:var(--mono)}
+  .bu-foto{aspect-ratio:4/3;background:#f0f0f0 center/cover no-repeat;border-bottom:1px solid #011b7f;position:relative}
+  .bu-foto.vacia::after{content:"sin imagen";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:11px var(--mono);color:#9a9a9a;text-transform:uppercase}
+  .bu-info{padding:12px 14px;flex:1;display:flex;flex-direction:column;gap:6px}
+  .bu-info h4{margin:0;font:500 15px var(--mono);color:#011b7f;text-transform:uppercase}
+  .bu-anio{font-size:12px;color:var(--blue)}
+  .bu-meta{font-size:11px;color:#555;line-height:1.5}
+  .bu-meta b{font-weight:500;color:#011b7f}
+  .bu-acc{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #011b7f}
+  .bu-acc button{border:0;background:#fff;color:var(--blue);padding:9px 0;font:500 11px var(--mono);text-transform:uppercase;cursor:pointer}
+  .bu-acc button+button{border-left:1px solid #011b7f}
+  .bu-acc button:hover{background:var(--blue);color:#fff}
+  .bu-nada{grid-column:1/-1;padding:40px;border:1px dashed #9a9a9a;text-align:center;font:13px var(--mono);color:#555}
+  @media (max-width:800px){ .bu-cols{grid-template-columns:1fr} .bu-filtros{position:static} }
+  /* ---------- BLOG / ARCHIVO ABIERTO ---------- */
+  #blog{position:fixed;left:0;right:0;top:var(--row);bottom:0;display:none;z-index:2;overflow-y:auto}
+  body.r-blog #blog{display:block}
+  .bl{width:min(1090px,100% - 32px);margin:0 auto;padding:48px 0 140px}
+  .bl-titulo{display:inline-block;margin:0 0 64px -8px}
+  .bl-titulo span{display:inline-block;padding:14px 70px 14px 44px;background:var(--blue);color:#fff;font-family:var(--mono);font-weight:500;font-size:34px;text-transform:uppercase;clip-path:polygon(0 0,100% 0,calc(100% - 46px) 100%,46px 100%)}
+  .bl-cols{display:grid;grid-template-columns:1fr 1fr;gap:0 120px;align-items:start}
+  .bl-col{display:flex;flex-direction:column;gap:56px}
+  .bl-col:nth-child(2){margin-top:0}
+  .post{width:100%;max-width:492px}
+  .post-card{border:1px solid #011b7f;background:#fff}
+  .post-autor{display:flex;align-items:center;height:111px;padding:0 22px;background:#fedee3;font-family:var(--mono);font-weight:500;font-size:20px;color:var(--blue);text-transform:uppercase;border-bottom:1px solid #011b7f}
+  .post-card img{display:block;width:100%;height:auto}
+  .post-txt{padding:12px 16px 14px;font-family:var(--mono);font-size:15px;line-height:1.35;white-space:pre-line}
+  .post-acc{display:flex;gap:44px;padding:16px 4px 0;font-family:var(--mono);font-size:14px}
+  .post-acc button{display:flex;align-items:center;gap:10px;padding:0;border:0;background:none;font:inherit;color:#000;cursor:pointer}
+  .post-acc button svg{width:22px;height:22px;fill:none;stroke:#000;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
+  .post-acc button.on svg{fill:var(--blue);stroke:var(--blue)}
+  .post-acc button.on{color:var(--blue)}
+  @media (max-width:800px){ .bl-cols{grid-template-columns:1fr;gap:56px} .bl-titulo span{font-size:24px;padding:12px 50px 12px 34px} }
+
+  /* ---------- LÍNEA DE TIEMPO ---------- */
+  #linea{position:fixed;left:0;right:0;top:var(--row);bottom:0;display:none;z-index:2;overflow-y:auto;scrollbar-width:thin}
+  body.r-linea #linea{display:block}
+  .lt{width:min(1100px,100% - 32px);margin:0 auto;padding:40px 0 160px}
+  .lt-volver{display:inline-block;margin-bottom:24px;font-family:var(--mono);font-size:12px;color:var(--blue);text-transform:uppercase;text-decoration:none;background:#fff;padding:4px 8px;border:1px solid var(--blue)}
+  .lt-volver:hover{background:var(--blue);color:#fff}
+  .lt-titulo{display:block;width:fit-content;margin:0 auto 28px;padding:10px 26px;background:#fff;border:1px solid #000;font-family:var(--mono);font-weight:500;font-size:32px;text-transform:uppercase;letter-spacing:.02em}
+  .lt-portada{width:min(718px,100%);margin:0 auto}
+  .lt-portada img,.lt-item img{display:block;width:100%;height:auto;background:#eee}   /* foto entera, sin recortar */
+  .lt-intro{width:min(602px,100%);margin:28px auto 96px;font-family:var(--mono);font-weight:300;font-size:16px;line-height:1.45;background:#fff;padding:6px 0}
+  .lt-item{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:32px;align-items:start;margin-bottom:110px}
+  .lt-foto{background:#fff}
+  .lt-pie{margin-top:14px;text-align:center;font-family:var(--mono);font-weight:500;font-size:14px;letter-spacing:-.04em}
+  .lt-txt{background:#fff;padding:4px 0 10px}
+  /* sin palabras cortadas: el renglón corta solo entre palabras */
+  .lt,.lt *{hyphens:manual;-webkit-hyphens:manual;word-break:normal;overflow-wrap:normal}
+  .lt-anio{font-family:var(--mono);font-weight:800;font-size:30px;line-height:1.2}
+  .lt-tit{margin:6px 0 14px;font-family:var(--mono);font-weight:800;font-size:21px;line-height:1.2;color:var(--blue)}
+  .lt-cuerpo{font-family:var(--mono);font-weight:400;font-size:18px;line-height:1.4}
+  .lt .ph{aspect-ratio:1.42;height:auto}
+  @media (max-width:800px){
+    .lt-item{grid-template-columns:1fr;gap:16px;margin-bottom:64px}
+    .lt-titulo{font-size:22px}
+    .lt-cuerpo{font-size:16px}
+  }
+  .barra .cap{margin-left:calc(12px*var(--k));font-family:var(--mono);font-size:max(11px,calc(12px*var(--k)));color:#fff;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ficha.abierta .barra svg{transform:rotate(180deg)}
+  .plegable{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s ease}
+  .plegable > .tabla{overflow:hidden;min-height:0}
+  .ficha.abierta .plegable{grid-template-rows:1fr}
+  /* con la ficha desplegada la foto se achica para que entre todo */
+  .ficha{transition:width .3s ease}
+  .ficha .foto{transition:height .3s ease}
+  .pin{transition:padding-top .3s ease}
+  .ficha.abierta{width:min(var(--fw2),100%)}
+  .ficha.abierta .foto{height:var(--fh2)}
+  .pin.abierta{padding-top:var(--pt2,28px)}
+  .pila img{position:absolute;left:50%;top:50%;width:85%;height:85%;object-fit:cover}
+  .fotos{position:relative;z-index:1;display:flex;flex-direction:column;gap:calc(var(--row)*var(--rest));padding-bottom:calc(var(--row)*var(--rest))}
+  .cerrar{border:0;background:none;font:inherit;font-size:12px;text-transform:uppercase;color:var(--blue);cursor:pointer;padding:4px 0}
+  .cerrar:hover{text-decoration:underline}
+  .solo-movil{display:none}
+  .fade{animation:fade .25s ease}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+
+  @media (max-width:900px){
+    #lugares{width:310px}
+    #main{left:310px;padding-right:16px}
+    .ficha,.fotos figure{position:relative}
+    .fotos{gap:var(--row);margin-top:var(--row);padding-bottom:var(--row)}
+    .tabla > div{grid-template-columns:96px 1fr}
+    .log-line{grid-template-columns:60px 1fr}
+    .log-line .st{display:none}
+  }
+  @media (max-width:700px){
+    #lugares{width:100%}
+    #main{left:0;padding:0 12px calc(var(--row)*2);background:#fff;display:none}
+    body.sel #main{display:block}
+    body.sel #lugares{display:none}
+    .solo-movil{display:inline-block}
+    .toolbar{display:flex}
+  }
+</style>
+</head>
+<body>
+<div id="stage"><svg id="hero" xmlns="http://www.w3.org/2000/svg" aria-label=".log"></svg></div>
+
+<section id="sobre" aria-label="Sobre">
+  <div class="clip">
+    <p class="act"><span class="azul">.log</span> es una nueva forma de explorar la memoria de la ciudad. Un archivo vivo que transforma el patrimonio en una experiencia de exploración, encuentro y descubrimiento.</p>
+    <p>A través de recorridos, dispositivos interactivos y nuevas formas de narrar el pasado, .log invita a redescubrir las historias que habitan los espacios que transitamos todos los días.</p>
+    <p>Porque la memoria no es algo estático: se transforma, se comparte y se recorre.</p>
+  </div>
+</section>
+
+<section id="linea" aria-label="Línea de tiempo"></section>
+
+<section id="contactar" aria-label="Contactar">
+  <div class="ct">
+    <h1 class="bl-titulo ct-titulo"><span>Colaborá con nuestra editorial</span></h1>
+    <form class="ct-form" novalidate>
+      <h2 class="ct-h">Nuevo aporte</h2>
+      <div class="ct-box">
+        <label class="ct-nombre">Nombre :<input name="nombre" autocomplete="name" maxlength="60"></label>
+        <textarea name="texto" placeholder="Compartí un dato, una fuente, una foto, un recuerdo..." maxlength="2000"></textarea>
+        <div class="ct-fotos"></div>
+      </div>
+      <div class="ct-pie">
+        <label class="ct-sumar">+ sumar imágenes<input type="file" accept="image/*" multiple hidden></label>
+        <span class="ct-msg" role="status"></span>
+        <button class="ct-pub" type="submit">Publicar</button>
+      </div>
+    </form>
+    <div class="ct-gracias" role="status">
+      <p class="ct-g1">¡Gracias por tu contribución!</p>
+      <p class="ct-g2">Estaremos evaluando tu aporte para la editorial.</p>
+      <button type="button" class="ct-otro">Enviar otro aporte</button>
+    </div>
+  </div>
+</section>
+
+<section id="mapa" aria-label="Mapa" tabindex="-1">
+  <div id="mapa-canvas"><div id="mapa-cargando">cargando mapa…</div></div>
+  <div id="mapa-etiquetas"></div>
+  <div id="mapa-tip" hidden></div>
+  <div class="mp-panel">
+    <h2>Mapa · Buenos Aires</h2>
+    <form id="mapa-buscar" autocomplete="off"><input name="q" placeholder="Callao 1200 · Corrientes y Callao"><button>Ir</button></form>
+    <div id="mapa-msg"></div>
+    <ul id="mapa-lugares">
+      <li><button data-id="iglesia-san-nicolas-de-bari">Iglesia San Nicolás de Bari</button></li>
+      <li><button data-id="pabellon-argentino">Pabellón Argentino</button></li>
+      <li><button data-id="palacio-miro">Palacio Miró</button></li>
+      <li><button data-id="palacio-unzue">Palacio Unzué</button></li>
+      <li><button data-id="penitenciaria-nacional">Penitenciaría Nacional</button></li>
+    </ul>
+    <div class="mp-ayuda">arrastrar: mover · rueda: zoom · clic derecho: girar</div>
+  </div>
+  <div class="mp-cred">calles © OpenStreetMap · alturas ilustrativas</div>
+</section>
+<section id="buscador" aria-label="Buscador" tabindex="-1">
+  <div class="bu">
+    <h1 class="bl-titulo"><span>Buscador</span></h1>
+    <div class="bu-cols">
+      <aside class="bu-filtros">
+        <input type="search" id="bu-q" placeholder="Buscar nombre, arquitecto…" autocomplete="off">
+        <div class="bu-grupo"><h3>Barrio</h3><div class="bu-chips" data-f="barrio"></div></div>
+        <div class="bu-grupo"><h3>Tipología</h3><div class="bu-chips" data-f="tipo"></div></div>
+        <div class="bu-grupo"><h3>Qué hay hoy</h3><div class="bu-chips" data-f="hoyTipo"></div></div>
+        <div class="bu-grupo"><h3>Construido en</h3><div class="bu-chips" data-f="siglo"></div></div>
+        <div class="bu-grupo"><h3>Desaparecido entre</h3>
+          <div class="bu-rango"><input type="number" id="bu-desde" step="10"> y <input type="number" id="bu-hasta" step="10"></div></div>
+        <div class="bu-grupo"><label class="bu-check"><input type="checkbox" id="bu-linea"> Con línea de tiempo</label></div>
+        <div class="bu-pie"><span id="bu-cuenta"></span><button type="button" id="bu-limpiar">Limpiar</button></div>
+      </aside>
+      <div class="bu-res" id="bu-res"></div>
+    </div>
+  </div>
+</section>
+<section id="blog" aria-label="Archivo abierto">
+  <div class="bl">
+    <div class="bl-top">
+      <h1 class="bl-titulo"><span>Archivo abierto</span></h1>
+      <button type="button" class="bl-nuevo" aria-expanded="false">+ subir un post</button>
+    </div>
+    <form class="bl-form" hidden novalidate>
+      <label class="ct-nombre">Nombre :<input name="nombre" autocomplete="name" maxlength="60"></label>
+      <textarea name="texto" placeholder="Contá qué muestra la foto, de dónde es, qué recordás..." maxlength="2000"></textarea>
+      <div class="ct-fotos"></div>
+      <div class="ct-pie">
+        <label class="ct-sumar">+ sumar imágenes<input type="file" accept="image/*" multiple hidden></label>
+        <span class="ct-msg" role="status"></span>
+        <button type="button" class="bl-cancelar">Cancelar</button>
+        <button class="ct-pub" type="submit">Publicar</button>
+      </div>
+    </form>
+    <div class="bl-cols"></div>
+  </div>
+</section>
+
+<section id="catalogo" aria-label="Catálogo">
+  <div id="lugares">
+    <div id="lugares-head"></div>
+    <div id="lugares-list" role="list"></div>
+  </div>
+  <div id="main"></div>
+  <div id="bar"></div>
+</section>
+
+<script>
+/* =========================================================
+   DATOS — editar acá.
+   Pabellón Argentino: datos y fotos del frame de Figma.
+   El resto: BORRADOR para probar el diseño, verificar.
+   año: "construcción - desaparición" (el registro ordena por el segundo año)
+   hoy: lo que hay en el lugar (se muestra en el registro)
+   fotos: [] = recuadros de relleno hasta que haya imágenes
+   ========================================================= */
+const LUGARES = [
+  { id:"penitenciaria-nacional", nombre:"Penitenciaría Nacional",
+    anio:"1877 - 1962", arquitectos:"Ernesto Bunge",
+    descripcion:"Penitenciaría Nacional en la cual estuvieron presos personajes icónicos, entre ellos: El Petiso Orejudo",
+    ubicacion:"34°38’ 10’S 58°23’40’O", hoy:"Parque Las Heras",
+    linea:{
+      portada:"img/p00-principal.jpg",
+      intro:"Inaugurada en 1877, la Penitenciaría Nacional funcionó durante casi un siglo en el terreno que hoy ocupa el Parque Las Heras. Tras su cierre en 1962 y posterior demolición, el espacio se transformó en un parque público.",
+      items:[
+        {anio:"1821", titulo:"Fin del Cabildo como institución", foto:"img/p01-cabildo-litografia.jpg", pie:"Cabildo, 1821",
+         texto:"La institución del Cabildo se disuelve, pero el edificio sigue funcionando como cárcel. Esa función continúa durante décadas y se extiende hasta la inauguración de la Penitenciaría en 1877."},
+        {anio:"1860", titulo:"La cárcel del Cabildo, superpoblada", foto:"img/p02-cabildo-1810.jpg", pie:"Cárcel Cabildo, 1860",
+         texto:"La Penitenciaría todavía no existe. Los presos de Buenos Aires se alojan en la cárcel del Cabildo, que funciona en ese edificio desde 1608. Las fuentes describen esas celdas como parecidas a calabozos, donde a menudo se amontonaban muchos detenidos. Ese hacinamiento es la razón por la que se planea una cárcel modelo que la reemplace."},
+        {anio:"1869", titulo:"Llamado a planos y elección del predio", foto:"img/p03-retrato.jpg", pie:"Juan Gregorio de las Heras",
+         texto:"El gobierno de la Provincia de Buenos Aires llama a presentar planos y presupuestos para un nuevo edificio de cárcel y decide construirlo en el predio de la barranca de Juan Gregorio de Las Heras, en las afueras de la ciudad."},
+        {anio:"1872", titulo:"Comienza la obra", foto:"img/p04-plano.jpg", pie:"Planos de la penitenciaría",
+         texto:"Comienza la construcción con los planos del arquitecto Ernesto Bunge. El diseño sigue el modelo panóptico de Bentham: pabellones de dos pisos que convergen en un puesto de vigilancia central, desde el que un guardia puede observar todo casi sin girar la cabeza."},
+        {anio:"1876", titulo:"Obra terminada y régimen de trabajo", foto:"img/p05-aerea.jpg", pie:"Penitenciaría nacional, 1876",
+         texto:"La obra se entrega terminada. Se adopta un régimen de trabajo penitenciario en el que los presos aprenden oficios en talleres. El edificio incluye celdas, cocina, lavadero, talleres, una capilla y patios que funcionan como huertas."},
+        {anio:"1877", titulo:"Inauguración", foto:"img/p06-exterior.jpg", pie:"Penitenciaría nacional, 1876",
+         texto:"El 19 de enero, el gobernador Carlos Casares designa a Enrique O’Gorman como primer gobernador de la Penitenciaría. El 28 de mayo se inaugura el penal con el traslado de presos desde el Cabildo. Las fuentes no coinciden en la cantidad: algunas hablan de 300 y otras de 710. Algunos historiadores sostienen que no hubo una inauguración formal, sino que el penal empezó a funcionar cuando llegaron los primeros presos."},
+        {anio:"1878", titulo:"Participación argentina en París", foto:"img/p07-talleres.jpg", pie:"Talleres dentro de la penitenciaría, 1878",
+         texto:"Argentina participa de la Exposición Universal de París, que se realiza entre mayo y noviembre. Según el arquitecto Matías Ruiz Díaz, el país envió productos fabricados por presos de la Penitenciaría, como muestra de los avances de una “prisión modelo”. Ruiz Díaz afirma que pocas cárceles de la época habían logrado un desarrollo similar."},
+        {anio:"1900", titulo:"Última ejecución registrada en las fuentes", foto:"img/p08-guardias.jpg", pie:"Ejecución Cayetano Grossi, 1900",
+         texto:"En abril de 1900, en la Penitenciaría Nacional, se fusiló a Cayetano Grossi, asesino de bebés; fue la última aplicación de la pena capital en la Argentina por delitos comunes."},
+        {anio:"1907", titulo:"La gestión de Ballvé", foto:"img/p06-exterior.jpg", pie:"Penitenciaría Nacional",
+         texto:"Antonio Ballvé dirige el penal y lo recorre con visitas de especialistas. Su gestión se convierte en un punto de referencia para los expertos en criminología de la época."},
+        {anio:"1909", titulo:"Empieza el debate sobre el traslado", foto:"img/p10-aerea-2.jpg", pie:"Penitenciaría Nacional",
+         texto:"Empieza a discutirse el traslado del penal a otro lugar, porque el crecimiento urbano comienza a rodearlo."},
+        {anio:"1914", titulo:"Petiso Orejudo", foto:"img/p11-retrato-preso.jpg", pie:"Petiso Orejudo",
+         texto:"Cayetano Santos Godino, alias ‘el Petiso Orejudo’, ingresó en 1914 a la Penitenciaría Nacional y años más tarde sería trasladado al penal de Ushuaia."},
+        {anio:"1923", titulo:"La fuga del túnel", foto:"img/p11-retrato-preso.jpg", pie:"Petiso Orejudo",
+         texto:"El 23 de agosto se produce la fuga más conocida. Los presos cavan un túnel de 24 metros de largo y 60 centímetros de diámetro. Catorce presos escapan, pero el decimoquinto queda atascado en el túnel y eso impide que se fuguen otros. La fuga genera un debate público sobre las respuestas institucionales."},
+        {anio:"1930", titulo:"Imagen Penitenciaría", foto:"img/p00-principal.jpg", pie:"Penitenciaría Nacional, 1930",
+         texto:"Tomada desde Las Heras. Al fondo, se puede observar la Facultad que fue de Derecho y hoy pertenece a Ingeniería."},
+        {anio:"1939", titulo:"Residencia del director", foto:"img/p14-residencia.jpg", pie:"Residencia del director de la penitenciaría",
+         texto:"Al frente de la Penitenciaría Nacional, sobre el camino del Chavango —luego, Las Heras— se encontraba la residencia del director del presidio."},
+        {anio:"1950’s", titulo:"Desarrollo edilicio", foto:"img/p15-aerea-1950.jpg", pie:"Fotografía tomada en 1950",
+         texto:"Imagen aérea de la penitenciaría donde se puede observar el desarrollo edilicio del barrio."},
+        {anio:"1956", titulo:"Fusilamiento del general Valle", foto:"img/p16-valle.jpg", pie:"Nota de diario sobre la ejecución del general Juan J. Valle, 1956",
+         texto:"El 12 de junio se fusila al general Juan José Valle, acusado de sublevarse contra la Revolución Libertadora."},
+        {anio:"1961", titulo:"Comienza la demolición", foto:"img/p17-demolicion-1961.jpg", pie:"Demolición de la penitenciaría, 1961",
+         texto:"El 6 de septiembre empieza la demolición manual, por la casa del director."},
+        {anio:"1962", titulo:"Explosiones y cierre", foto:"img/p12-demolicion.jpg", pie:"Explosiones, 1962",
+         texto:"El 5 de enero comienzan las explosiones con trotyl que derriban los muros de siete metros de alto. El 5 de febrero se arría la bandera por última vez y se cierra el penal. Después de la demolición, la Municipalidad adquiere el predio, y el Gobierno nacional propone allí “La Ciudad del Foro” para los tribunales."},
+        {anio:"1980", titulo:"El terreno se convierte en el actual Parque Las Heras", foto:"img/p13-parque-hoy.jpg", pie:"Parque Las Heras, 1980",
+         texto:"El terreno queda baldío durante años. Hacia la década de 1980 se planta el parque, que se inaugura como Parque Juan Gregorio Las Heras. Quedan algunas palmeras del predio original."},
+        {anio:"2020", titulo:"Excavación arqueológica", foto:"img/p19-excavacion.jpg", pie:"Excavaciones, 2020",
+         texto:"De hecho, en 2020, un grupo de arqueólogos de la organización Arqueotierra se dedicó a buscar, cavando en el parque, restos del antiguo presidio. Allí encontraron una suela de zapatos, caños, trozos del muro perimetral, vajillas y algunos otros objetos del presidio, dando cuenta de que la historia de la ciudad siempre se esfuerza por regresar."}
+      ]},
+    foto:"img/p00-principal.jpg",
+    fotos:[{src:"img/p01-cabildo-litografia.jpg", txt:"Cabildo, 1821"},
+           {src:"img/p02-cabildo-1810.jpg", txt:"Cárcel del Cabildo, 1860"},
+           {src:"img/p03-retrato.jpg", txt:"General Las Heras"},
+           {src:"img/p04-plano.jpg", txt:"Planos de la Penitenciaría"},
+           {src:"img/p05-aerea.jpg", txt:"Penitenciaría Nacional, 1876"},
+           {src:"img/p07-talleres.jpg", txt:"Talleres dentro de la penitenciaría, 1878"},
+           {src:"img/p08-guardias.jpg", txt:"Ejecución de Cayetano Grossi"},
+           {src:"img/p10-aerea-2.jpg", txt:"Vista aérea de la penitenciaría"},
+           {src:"img/p11-retrato-preso.jpg", txt:"Petiso Orejudo"},
+           {src:"img/p00-principal.jpg", txt:"Fotografía tomada desde Las Heras"},
+           {src:"img/p12-demolicion.jpg", txt:"Explosiones y cierre de la penitenciaría"},
+           {src:"img/p13-parque-hoy.jpg", txt:"Actual Parque Las Heras"}] },
+  { id:"pabellon-argentino", nombre:"Pabellón Argentino",
+    anio:"1889 - 1932", arquitectos:"Albert Ballu",
+    descripcion:"Construido para representar a la Argentina en la Exposición Universal de París de 1889",
+    ubicacion:"34°35’38”S 58°22’29”O", hoy:"Plaza San Martín",
+    linea:{
+      portada:"img/principal.jpg",
+      intro:"El Pabellón Argentino fue una estructura monumental de hierro y vidrio construida para representar a la Argentina en la Exposición Universal de París de 1889. Posteriormente fue trasladado a Buenos Aires e instalado en la Plaza San Martín, donde funcionó como espacio de exposiciones y eventos culturales hasta su desmantelamiento en 1933. Entre 1911 y 1933 también fue sede del Museo Nacional de Bellas Artes.",
+      items:[
+        {anio:"1889", titulo:"Inauguración en París", foto:"img/f01-paris-1889.jpg",
+         texto:"Se inaugura el Pabellón Argentino en la Exposición Universal de París. Diseñado por el arquitecto francés Albert Ballu, combina hierro, vidrio y cerámica decorativa para representar el progreso y la modernidad de la Argentina ante el mundo."},
+        {anio:"1891", titulo:"Demolición de los antiguos cuarteles", foto:"img/f03-arcadas.jpg",
+         texto:"Se demuele el antiguo Cuartel de Artillería del Retiro, ubicado sobre la calle Arenales, frente a Plaza San Martín. El terreno queda disponible para la reconstrucción del Pabellón Argentino."},
+        {anio:"1893-94", titulo:"Reconstrucción del pabellón en Plaza San Martín", foto:"img/principal.jpg",
+         texto:"La estructura vuelve a montarse sobre la calle Arenales, entre Florida y Maipú. Se adapta para actividades culturales y comerciales, incorporando un teatro y espacios de entretenimiento. Su reapertura estaba prevista para enero de 1894."},
+        {anio:"1898", titulo:"Exposición Nacional", foto:"img/f05-vista-aerea.jpg",
+         texto:"El pabellón participa de la Exposición Nacional de 1898, dedicada a mostrar el desarrollo industrial, comercial y artístico del país. Alberga una sección de Bellas Artes con aproximadamente 200 obras."},
+        {anio:"1910", titulo:"Exposición Internacional de Bellas Artes del Centenario", foto:"img/f08-esquina.jpg",
+         texto:"Durante los festejos por los cien años de la Revolución de Mayo, el pabellón alberga una importante exposición internacional de arte, con más de 2.000 obras de artistas argentinos y extranjeros."},
+        {anio:"1911", titulo:"Nueva sede del Museo Nacional de Bellas Artes", foto:"img/f08-esquina.jpg",
+         texto:"El Museo Nacional de Bellas Artes se traslada desde el antiguo Bon Marché (actual Galerías Pacífico) al Pabellón Argentino. El edificio se convierte en su segunda sede y alberga importantes colecciones de arte nacional e internacional."},
+        {anio:"1928", titulo:"Proyecto para reemplazar el edificio", foto:"img/f02-demolicion.jpg",
+         texto:"Se aprueba un anteproyecto para construir una nueva sede del Museo Nacional de Bellas Artes en el terreno del pabellón. Aunque la propuesta no llega a concretarse, anticipa la intención de reemplazar la antigua estructura."},
+        {anio:"1932", titulo:"Ampliación de Plaza San Martín", foto:"img/f09-entorno.jpg",
+         texto:"Comienzan las transformaciones urbanas para extender los jardines de Plaza San Martín hacia la barranca y el sector de Retiro. La presencia del pabellón resulta incompatible con el nuevo trazado proyectado."},
+        {anio:"1933", titulo:"Desmantelamiento del Pabellón Argentino", foto:"img/f10-plaza.jpg",
+         texto:"El pabellón es desarmado durante las obras de ampliación de la plaza. El Museo Nacional de Bellas Artes se traslada a su actual sede en Recoleta, mientras gran parte de la estructura y sus elementos decorativos se dispersan o se pierden."}
+      ]},
+    foto:"img/principal.jpg",
+    // orden del frame "Group 460" y descripciones del Excel
+    fotos:[{src:"img/f01-paris-1889.jpg", txt:"El Pabellón Argentino en París"},
+           {src:"img/f03-arcadas.jpg",    txt:"Antiguos Cuarteles"},
+           {src:"img/principal.jpg",      txt:"Reconstrucción del Pabellón en Plaza San Martín"},
+           {src:"img/f05-vista-aerea.jpg",txt:"Exposición Nacional, 1898"},
+           {src:"img/f08-esquina.jpg",    txt:"Sede del Museo de Bellas Artes"},
+           {src:"img/f09-entorno.jpg",    txt:"Proyecto para reemplazar el edificio"},
+           {src:"img/f10-plaza.jpg",      txt:"Ampliación de la Plaza San Martín"}] },
+  { id:"iglesia-san-nicolas-de-bari", nombre:"Iglesia San Nicolás de Bari",
+    anio:"1733 - 1931", arquitectos:"Carlos Ciríaco Massa",
+    descripcion:"Iglesia que dió nombre al actual barrio de San Nicolás",
+    ubicacion:"34°35′45″S 58°23′12″O", hoy:"Obelisco / Av. 9 de Julio",
+    linea:{
+      portada:"img/i00-principal.jpg",
+      intro:"La Iglesia de San Nicolás de Bari fue un templo histórico de Buenos Aires, construido originalmente en 1733. Estaba ubicada en la intersección de las actuales avenidas 9 de Julio y Corrientes, donde hoy se encuentra el Obelisco. En 1931 fue demolida como parte de las transformaciones urbanas de la ciudad. En su torre se había izado por primera vez la bandera argentina en Buenos Aires, en 1812.",
+      items:[
+        {anio:"1721", titulo:"Domingo de Acassuso", foto:"img/i01-exvoto.jpg",
+         texto:"En 1733, Domingo de Acassuso, que ya había fundado la capilla de San Isidro Labrador en 1706, mandó a construir la Iglesia de San Nicolás de Bari en la intersección de las actuales avenidas 9 de Julio y Corrientes."},
+        {anio:"1727", titulo:"Muerte de Acassuso", foto:"img/i01-exvoto.jpg",
+         texto:"Don Domingo de Acassuso fallece el 8 de febrero tras caer de un andamio mientras inspeccionaba las obras de construcción de la iglesia."},
+        {anio:"1750", titulo:"Monjas Capuchinas", foto:"img/i02-clarisas.jpg",
+         texto:"Las monjas llegan desde Chile y establecen su primer convento en el lugar. Las condiciones eran precarias debido al terreno pantanoso, la humedad y los problemas edilicios."},
+        {anio:"1806-1807", titulo:"Invasiones Inglesas", foto:"img/i03-invasiones.jpg",
+         texto:"La iglesia funciona como lugar de resguardo de armas y municiones ante la amenaza británica. El sacerdote Manuel Alberti ejerce allí su ministerio y es encarcelado temporalmente por los ingleses."},
+        {anio:"1810", titulo:"Revolución de Mayo", foto:"img/i04-cabildo.jpg",
+         texto:"La parroquia es una de las iglesias importantes de Buenos Aires, aunque se encuentra relativamente alejada del centro urbano de la época. Manuel Alberti, vinculado a la iglesia, integra la Primera Junta."},
+        {anio:"1811", titulo:"Muerte de Manuel Alberti", foto:"img/i05-retrato.jpg",
+         texto:"El sacerdote fallece el 31 de enero. Se rumorea que sus restos podrían haber permanecido enterrados en la antigua iglesia, debajo de la actual zona del Obelisco."},
+        {anio:"1812", titulo:"Izamiento de Bandera", foto:"img/i07-belgrano.jpg",
+         texto:"El 23 de agosto se iza la bandera creada por Manuel Belgrano en una de las torres de la iglesia. Este acontecimiento se recuerda actualmente en una de las caras del Obelisco."},
+        {anio:"1871", titulo:"Fiebre amarilla", foto:"img/i08-conventillo.jpg",
+         texto:"En enero de 1871 comenzó la epidemia de fiebre amarilla, que en sus seis meses de duración dejó un saldo de 14.000 víctimas entre la población de la ciudad de Buenos Aires, estimada por entonces en 190.000 habitantes."},
+        {anio:"1931", titulo:"Demolición", foto:"img/i00-principal.jpg",
+         texto:"La antigua iglesia de San Nicolás de Bari fue demolida en el año 1931 para dar paso a las obras de apertura de la Avenida Diagonal Norte y, posteriormente, a la construcción del Obelisco en la actual Plaza de la República."},
+        {anio:"1936", titulo:"Obelisco", foto:"img/i06-obelisco.jpg",
+         texto:"Tras demoler la iglesia para “modernizar” el barrio, se inaugura el actual Obelisco. El arquitecto fue Alberto Prebisch. La iglesia le dio el nombre al actual barrio de San Nicolás."}
+      ]},
+    foto:"img/i00-principal.jpg",
+    // orden y descripciones del Excel
+    fotos:[{src:"img/i01-exvoto.jpg",      txt:"Domingo de Acassuso"},
+           {src:"img/i02-clarisas.jpg",    txt:"Monjas capuchinas"},
+           {src:"img/i03-invasiones.jpg",  txt:"Invasiones Inglesas 1806"},
+           {src:"img/i04-cabildo.jpg",     txt:"Revolución de Mayo, 1810"},
+           {src:"img/i00-principal.jpg",   txt:"Iglesia San Nicolás de Bari"},
+           {src:"img/i06-obelisco.jpg",    txt:"Actual Obelisco"}] },
+  { id:"palacio-unzue", nombre:"Palacio Unzué",
+    anio:"1887 - 1995", arquitectos:"Desconocido",
+    descripcion:"También conocido como Quinta Unzué, fue la residencia de Perón y Evita",
+    ubicacion:"34°35′04″S 58°23′53″O", hoy:"Biblioteca Nacional",
+    linea:{
+      portada:"img/u05-jardin.jpg",
+      intro:"El Palacio Unzué fue una residencia aristocrática ubicada en el barrio de Recoleta, que posteriormente se convirtió en residencia presidencial. Allí vivieron Juan Domingo Perón y Eva Perón, quien falleció en el edificio en 1952. En 1958 fue demolido y, años después, en ese mismo terreno se construyó la actual Biblioteca Nacional.",
+      items:[
+        {anio:"1860’s", titulo:"Mariano Saavedra", foto:"img/u01-retrato.jpg",
+         texto:"Mariano Saavedra, hijo de Cornelio, edificó sobre la Avenida Alvear (hoy avenida del Libertador) una vivienda y comenzó la parquización del terreno."},
+        {anio:"1821", titulo:"Mariano Unzué y Mercedes Baudrix", foto:"img/u02-pareja.jpg",
+         texto:"En 1887, Saavedra vende el predio a Mariano Unzué. Junto con su esposa, Mercedes Baudrix, construyeron “la quinta” para pasar el verano. Al darse cuenta de que no estaban tan lejos del centro, decidieron morar ahí."},
+        {anio:"1906", titulo:"Fallecimiento de Mariano Unzué", foto:"img/u03-fachada.jpg",
+         texto:"Tras la muerte del propietario, su esposa Mercedes Baudrix continúa habitando la quinta. La residencia permanece vinculada a la familia Unzué."},
+        {anio:"1910", titulo:"Exposición del Centenario", foto:"img/u04-interiores.jpg",
+         texto:"Según Arcón de Buenos Aires, el palacio fue sede de una Exposición de Salud e Higiene, donde se presentaron adelantos médicos y sanitarios. Este dato requiere corroboración independiente."},
+        {anio:"1937", titulo:"Expropiación y paso a manos del Estado", foto:"img/u05-jardin.jpg",
+         texto:"Durante la presidencia de Agustín P. Justo se impulsa la expropiación de la quinta para destinarla a residencia presidencial. La propiedad deja de pertenecer a la familia Unzué."},
+        {anio:"1943", titulo:"Uso como residencia presidencial", foto:"img/u06-escalinata-auto.jpg",
+         texto:"La quinta se destina al alojamiento de los mandatarios. Edelmiro J. Farrell la utiliza ocasionalmente, antes de que Perón se establezca allí de forma permanente."},
+        {anio:"1943", titulo:"Perón y Evita se instalan en el palacio", foto:"img/u08-peron-evita.jpg",
+         texto:"Juan Domingo Perón y Eva Duarte comienzan a vivir en la residencia. El lugar se convierte en escenario de reuniones políticas, actividades oficiales y encuentros de Evita con distintos sectores sociales."},
+        {anio:"1943", titulo:"Fallecimiento de Eva Perón", foto:"img/u07-escalinata.jpg",
+         texto:"Eva Perón muere el 26 de julio en su habitación del primer piso del Palacio Unzué. Este acontecimiento convierte a la residencia en un lugar especialmente significativo para la memoria del peronismo."},
+        {anio:"1955", titulo:"Golpe de Estado y abandono de la residencia", foto:"img/u09-peron-balcon.jpg",
+         texto:"Tras el derrocamiento de Perón, el palacio deja de funcionar como residencia presidencial. El edificio queda asociado al gobierno depuesto y se exhiben allí pertenencias del matrimonio presidencial."},
+        {anio:"1958", titulo:"Demolición del Palacio Unzué", foto:"img/u10-vista-general.jpg",
+         texto:"La antigua mansión es demolida por decisión del gobierno de facto encabezado por Pedro Eugenio Aramburu. Desaparece el edificio que había sido residencia presidencial y símbolo de la vida de Perón y Evita."},
+        {anio:"1961-63", titulo:"Concurso y selección del proyecto", foto:"img/u11-biblioteca-dibujo.jpg",
+         texto:"Se realiza el concurso arquitectónico para la nueva Biblioteca Nacional. Resulta elegido el proyecto de Clorindo Testa, Francisco Bullrich y Alicia Cazzaniga."},
+        {anio:"1992", titulo:"Inauguración de la Biblioteca Nacional", foto:"img/u12-biblioteca-hoy.jpg",
+         texto:"El 10 de abril se inaugura el nuevo edificio de la Biblioteca Nacional Mariano Moreno. El terreno adquiere una nueva función cultural, mientras conserva parte de la vegetación de la antigua quinta."}
+      ]},
+    foto:"img/unzue-principal.jpg",
+    fotos:[{src:"img/u01-retrato.jpg", txt:"Hijo de Cornelio Saavedra"},
+           {src:"img/u02-pareja.jpg", txt:"Mariano Unzué y Mercedes Baudrix"},
+           {src:"img/u03-fachada.jpg", txt:"Mariano Unzué y Mercedes Baudrix usan la quinta para pasar el verano"},
+           {src:"img/u06-escalinata-auto.jpg", txt:"Evita en el Palacio Unzué"},
+           {src:"img/u08-peron-evita.jpg", txt:"Evita y Perón en el Palacio Unzué"},
+           {src:"img/u11-biblioteca-dibujo.jpg", txt:"Imágenes del concurso para la Biblioteca Nacional"},
+           {src:"img/u12-biblioteca-hoy.jpg", txt:"Actual Biblioteca Nacional"}] },
+  { id:"palacio-miro", nombre:"Palacio Miró",
+    anio:"c. 1870 - 1937", arquitectos:"—",
+    descripcion:"Residencia frente a Plaza Lavalle.",
+    ubicacion:"Plaza Lavalle, San Nicolás, CABA", hoy:"Plaza Lavalle",
+    foto:null, fotos:[] },
+  { id:"cementerio-sud", nombre:"Cementerio Sud",
+    anio:"—", arquitectos:"—", descripcion:"—", ubicacion:"—", hoy:"—",
+    foto:null, fotos:[] }
+];
+const fin = L => (L.anio.split("-").pop() || "").trim();
+
+(function(){
+  /* =========================================================
+     GRILLA — regular y centrada en la pantalla.
+     Filas de 84px exactos. Cada fila es una tira de trapecios
+     con período P; las diagonales "/" de una fila continúan las
+     de la fila de arriba, y cada 4 filas hay un salto (ritmo del diseño).
+     ========================================================= */
+  const ROW = 84;
+  const P = 328;       // período horizontal
+  const A = 116;       // lado corto superior (entre "/" y "\")
+  const D = 50;        // desplazamiento horizontal de cada diagonal en una fila (simétrico)
+  const JUMP = 112;    // salto extra cada 4 filas
+  const DESIGN_W = 1280;
+  const NAV_SPAN = 3*P + A;  // ancho superior del menú (de la 1ª "/" a la 4ª "\")
+
+  const NAV = [
+    {label:"sobre",         route:"sobre"},
+    {label:"catálogo",      route:"catalogo"},
+    {label:"instalaciones", route:"instalaciones"},
+    {label:"blog",          route:"blog"},
+    {label:"contactar",     route:"contactar"},
+    {label:"buscador",      route:"buscador"},
+    {label:"mapa",          route:"mapa"}
+  ];
+
+  // x de una "/" en el borde superior de la fila r, relativo al centro de la pantalla
+  function phase(r){
+    let s = -NAV_SPAN/2;
+    for (let n = 1; n <= r; n++) s -= D + (n % 4 === 0 ? JUMP : 0);
+    return s;
+  }
+  // todas las diagonales de la fila r entre xmin y xmax (coordenadas absolutas, centro en cx)
+  function diagonals(r, cx, xmin, xmax){
+    const out = [];
+    const s = cx + phase(r);
+    const k0 = Math.floor((xmin - s - P)/P), k1 = Math.ceil((xmax - s + P)/P);
+    for (let k = k0; k <= k1; k++){
+      const xs = s + k*P, xb = xs + A;
+      out.push({top:xs, bot:xs - D, kind:"/"});
+      out.push({top:xb, bot:xb + D, kind:"\\"});
+    }
+    return out.filter(d => Math.max(d.top, d.bot) >= xmin && Math.min(d.top, d.bot) <= xmax);
+  }
+
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.getElementById("hero");
+  const stage = document.getElementById("stage");
+  const el = (n, a, p) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; };
+  const h = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+  let route = "";
+  let selected = null;
+  let view = {cx: 0};   // centro de la grilla en coordenadas de pantalla
+
+  /* ---------- fondo: grilla + menú + logo ---------- */
+  function drawStage(){
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const isHome = route === "";
+    const sc = (isHome && vw < 900) ? Math.max(0.7, vw/1280) : 1;
+    const W = Math.max(vw/sc, DESIGN_W);
+    const Hd = vh/sc;
+    const cx = W/2;
+    svg.setAttribute("width", W*sc);
+    svg.setAttribute("height", vh);
+    svg.setAttribute("viewBox", `0 0 ${W} ${Hd}`);
+    svg.innerHTML = "";
+
+    // menú (fila 0) — en el inicio no hay menú, solo grilla y logo
+    const s0 = cx + phase(0);
+    // al entrar a SOBRE el menú se construye módulo por módulo
+    const bOff = buildT0 === null ? 99 : (performance.now() - buildT0) / 1000;
+    const building = route === "sobre" && bOff < 2.5;      // solo el logo chico se arma
+    if (!isHome){
+    el("polygon", {class:"navbg", points:`${s0},0 ${s0+NAV_SPAN},0 ${s0+NAV_SPAN+D},${ROW} ${s0-D},${ROW}`}, svg);
+    const nav = el("g", {}, svg);
+    NAV.forEach((item, k) => {
+      const j = Math.floor(k/2), odd = k % 2;
+      let x1t, x2t, x1b, x2b;
+      if (!odd){ x1t = s0 + j*P; x1b = x1t - D; x2t = x1t + A; x2b = x2t + D; }
+      else     { x1t = s0 + j*P + A; x1b = x1t + D; x2t = s0 + (j+1)*P; x2b = x2t - D; }
+      const g = item.route
+        ? el("a", {class:"cell" + ((route === "linea" ? "catalogo" : route) === item.route ? " on" : ""), href:"#" + item.route}, nav)
+        : el("g", {class:"cell"}, nav);
+      el("polygon", {points:`${x1t},0 ${x2t},0 ${x2b},${ROW} ${x1b},${ROW}`}, g);
+      if (item.label){
+        const t = el("text", {x:(x1t+x2t+x1b+x2b)/4, y:ROW/2, "text-anchor":"middle", "dominant-baseline":"central"}, g);
+        t.textContent = item.label;
+      }
+    });
+    // logo chico: vuelve al inicio
+    const ms = 0.275, mini = el("a", {class:"mini", href:"#", "aria-label":"Inicio", transform:`translate(${3 + D*ms},8) scale(${ms})`}, svg);
+    mini.addEventListener("click", e => { e.preventDefault(); history.replaceState(null, "", location.pathname + location.search); onRoute(); });
+    // piezas del logo chico: con la construcción aparecen de a una (A, C, B y el texto)
+    const md = [0.8, 1.05, 1.3, 1.55].map(t => building ? `animation-delay:${(t - bOff).toFixed(2)}s` : "");
+    const mcls = building ? "pz mb" : "pz";
+    const [mA, mB, mC] = logoShapes(0, 0);
+    [[mA,md[0]],[mC,md[1]],[mB,md[2]]].forEach(([p,st]) => el("polygon", {class:mcls, style:st, points:p.map(q => q.join(",")).join(" ")}, mini));
+    const mtx = el("g", {class: building ? "mb" : "", style:md[3]}, mini);
+    el("rect", {x:A + 74 - 26, y:ROW/2 - 4, width:8, height:8}, mtx);
+    const mt = el("text", {x:A + 74 - 8, y:ROW/2, "dominant-baseline":"central"}, mtx); mt.textContent = "LOG";
+    }
+
+    // grilla
+    const grid = el("g", {class:"grid"}, svg);
+    const nRows = Math.ceil(Hd/ROW) + 1;
+    for (let r = 0; r <= nRows; r++) el("line", {x1:0, y1:r*ROW, x2:W, y2:r*ROW}, grid);
+    for (let r = 0; r < nRows; r++){
+      diagonals(r, cx, -P, W + P).forEach(d => el("line", {x1:d.top, y1:r*ROW, x2:d.bot, y2:(r+1)*ROW}, grid));
+    }
+
+    // logo armado con módulos de la grilla + transición
+    if (isHome) drawLogo(cx, Hd, grid);
+    // en pantallas angostas el menú se desliza: se muestra la sección activa
+    let sl = (W*sc - vw)/2;
+    const active = svg.querySelector(".cell.on text");
+    if (active && W*sc > vw) sl = Math.min(W*sc - vw, Math.max(0, parseFloat(active.getAttribute("x"))*sc - vw/2));
+    stage.scrollLeft = sl;
+    view.cx = W*sc/2 - stage.scrollLeft;
+    document.documentElement.style.setProperty("--sx", Math.max(24, view.cx - 523) + "px");
+  }
+
+  /* ---------- logo de inicio: módulos de la grilla que se pintan de azul ---------- */
+  // piezas del logo: dos módulos de la grilla + la pieza que baja (proporciones del frame)
+  function logoShapes(xs, y0){
+    const y1 = y0 + ROW, bx = xs - D, by = y1;
+    return [
+      [[xs,y0],[xs+A,y0],[xs+A+D,y1],[xs-D,y1]],
+      [[xs+A,y0],[xs+P,y0],[xs+P-D,y1],[xs+A+D,y1]],
+      [[bx,by],[bx+119,by],[bx+179,by+115],[bx+110,by+218]]
+    ];
+  }
+  let logoT0 = null;                // inicio de la transición (se mantiene si la pantalla se redibuja)
+  function drawLogo(cx, Hd, grid){
+    const R = 4;                                   // fila del logo
+    const y0 = R*ROW, y1 = y0 + ROW;
+    // celda angosta ("/" a la izquierda) más cercana a la posición del frame
+    const ds = diagonals(R, cx, -P, cx*2 + P).filter(d => d.kind === "/");
+    ds.sort((a,b) => Math.abs(a.top - (cx + 85)) - Math.abs(b.top - (cx + 85)));
+    const xs = ds[0].top;
+    const [Apoly, Bpoly, Cpoly] = logoShapes(xs, y0);
+    const pts = p => p.map(q => q.join(",")).join(" ");
+
+    // módulos de toda la grilla (para la transición)
+    const layer = el("g", {class:"mods"});
+    grid.parentNode.insertBefore(layer, grid);
+    if (logoT0 === null) logoT0 = performance.now();
+    const off = (performance.now() - logoT0) / 1000;     // segundos ya transcurridos
+    const animate = off < 6.5 && !matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (animate){
+      const lcx = xs + A, lcy = y1;
+      const nRows = Math.ceil(Hd/ROW);
+      const cells = [];
+      for (let r = 0; r < nRows; r++){
+        const dd = diagonals(r, cx, -P, cx*2 + P).sort((a,b) => a.top - b.top);
+        for (let i = 0; i < dd.length - 1; i++){
+          const a = dd[i], b = dd[i+1];
+          const mx = (a.top+b.top+a.bot+b.bot)/4, my = r*ROW + ROW/2;
+          cells.push({p:[[a.top,r*ROW],[b.top,r*ROW],[b.bot,(r+1)*ROW],[a.bot,(r+1)*ROW]], d:Math.hypot(mx-lcx, (my-lcy)*1.6)});
+        }
+      }
+      const maxD = Math.max(...cells.map(c => c.d));
+      cells.forEach((c, i) => {
+        const rnd = (Math.sin(i*91.7)*43758.5453) % 1;
+        if (Math.abs(rnd) > 0.55) return;            // no todos: se encienden algunos módulos
+        const t = (1 - c.d/maxD) * 3.8 + Math.abs(rnd)*0.6;   // de afuera hacia el logo
+        el("polygon", {class:"mod", points:pts(c.p), style:`animation-delay:${(t - off).toFixed(2)}s`}, layer);
+      });
+    }
+    // piezas del logo (quedan)
+    const logo = el("a", {class:"logo-g" + (animate ? " anim" : ""), href:"#catalogo", "aria-label":".log — entrar al catálogo"}, svg);
+    [[Apoly,4.6],[Cpoly,5.1],[Bpoly,5.6]].forEach(([p,t]) =>
+      el("polygon", {class:"pz", points:pts(p), style:`animation-delay:${(t - off).toFixed(2)}s`}, logo));
+    const tx = xs + A + 74, ty = y0 + ROW/2;   // separado del vértice
+    const txt = el("g", {class:"logo-txt", style:`animation-delay:${(6.1 - off).toFixed(2)}s`}, logo);
+    el("rect", {x:tx - 26, y:ty - 4, width:8, height:8}, txt);
+    const t = el("text", {x:tx - 8, y:ty, "dominant-baseline":"central"}, txt); t.textContent = "LOG";
+  }
+
+  /* ---------- columna de lugares: los bordes derechos SON diagonales de la grilla ---------- */
+  const TARGETS = [290, 235, 230, 175, 285, 230, 225];   // dónde se busca la diagonal en cada fila (ritmo del frame)
+  const HEAD_TARGET = 180;
+
+  function pickEdge(r, target, lo, hi){
+    const ds = diagonals(r, view.cx, lo, hi).filter(d => Math.min(d.top, d.bot) >= lo && Math.max(d.top, d.bot) <= hi);
+    const pool = ds.length ? ds : diagonals(r, view.cx, 0, hi + P);
+    pool.sort((a, b) => Math.abs((a.top+a.bot)/2 - target) - Math.abs((b.top+b.bot)/2 - target));
+    return pool[0];
+  }
+
+  function wrap(text, max){
+    const words = text.toUpperCase().split(" "), lines = []; let cur = "";
+    words.forEach(w => { if ((cur + " " + w).trim().length > max && cur){ lines.push(cur); cur = w; } else cur = (cur + " " + w).trim(); });
+    if (cur) lines.push(cur); return lines;
+  }
+
+  const list = document.getElementById("lugares-list");
+
+  function drawLugares(){
+    const vw = window.innerWidth;
+    const mobile = vw <= 700, narrow = vw < 900 && !mobile;
+    const lo = mobile ? vw*0.45 : (narrow ? 130 : 150), hi = mobile ? vw - 6 : (narrow ? 300 : 420);
+    const scale = mobile ? (vw*0.75)/250 : (narrow ? 0.85 : 1);
+    const colW = mobile ? vw : (narrow ? 310 : 430);
+    const offset = Math.round(list.scrollTop / ROW);   // filas desplazadas por el scroll de la lista
+
+    // cabecera: fila 1 de la grilla
+    const head = document.getElementById("lugares-head");
+    head.innerHTML = "";
+    const hs = el("svg", {width:colW, height:ROW, viewBox:`0 0 ${colW} ${ROW}`});
+    const he = pickEdge(1, HEAD_TARGET*scale, lo, hi);
+    const hg = el("g", {class:"head"}, hs);
+    el("polygon", {points:`0.5,0.5 ${he.top},0.5 ${he.bot},${ROW-0.5} 0.5,${ROW-0.5}`}, hg);
+    const ht = el("text", {x:20, y:ROW/2 - 9, "dominant-baseline":"central"}, hg);
+    ["Catálogo de", "lugares"].forEach((ln, n) => { const sp = el("tspan", {x:20, dy: n ? 19 : 0}, ht); sp.textContent = ln; });
+    head.appendChild(hs);
+
+    // lista: el ítem i ocupa la fila de grilla 2 + i - offset
+    const H = LUGARES.length*ROW;
+    const ls = el("svg", {width:colW, height:H, viewBox:`0 0 ${colW} ${H}`});
+    LUGARES.forEach((L, i) => {
+      const r = 2 + i - offset;
+      const e = pickEdge(r, TARGETS[((i % 7) + 7) % 7]*scale, lo, hi);
+      const y0 = i*ROW + 0.5, y1 = (i+1)*ROW - 0.5;
+      const g = el("g", {class:"lug" + (selected === L.id ? " on" : ""), tabindex:0, role:"button", "aria-label":L.nombre, "data-id":L.id}, ls);
+      el("polygon", {points:`0.5,${y0} ${e.top},${y0} ${e.bot},${y1} 0.5,${y1}`}, g);
+      const maxChars = Math.max(8, Math.floor((Math.min(e.top, e.bot) - 34)/8.4));
+      const lines = wrap(L.nombre, maxChars);
+      const t = el("text", {x:24, y: i*ROW + ROW/2 - (lines.length-1)*9, "dominant-baseline":"central"}, g);
+      lines.forEach((ln, n) => { const s = el("tspan", {x:24, dy: n ? 18 : 0}, t); s.textContent = ln; });
+      g.addEventListener("click", () => select(selected === L.id ? null : L.id));
+      g.addEventListener("keydown", ev => { if (ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); select(L.id); } });
+    });
+    const on = ls.querySelector(".lug.on"); if (on) ls.appendChild(on);
+    list.innerHTML = "";
+    list.appendChild(ls);
+    list.scrollTop = offset*ROW;
+  }
+
+  /* ---------- scroll que se acomoda de a una fila (84px) ---------- */
+  function snapper(box, after){
+    let t, busy = false;
+    box.addEventListener("scroll", () => {
+      if (busy) return;
+      clearTimeout(t);
+      t = setTimeout(() => {
+        const target = Math.round(box.scrollTop / ROW) * ROW;
+        if (Math.abs(target - box.scrollTop) > 0.5){
+          busy = true; box.scrollTo({top: target, behavior: "smooth"});
+          setTimeout(() => { busy = false; box.scrollTop = target; after && after(); }, 260);
+        } else after && after();
+      }, 120);
+    }, {passive:true});
+  }
+
+  /* ---------- área principal ---------- */
+  const main = document.getElementById("main");
+  const bar = document.getElementById("bar");
+
+  // filas disponibles bajo el menú: foto (--ph filas) + ficha (3 filas) tienen que entrar enteras
+  // foto + ficha escalan juntas para ocupar el espacio libre, centradas
+  function fitRows(){
+    const css = document.documentElement.style;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    if (vw <= 700){ css.setProperty("--fw", (vw - 24) + "px"); css.setProperty("--fh", Math.round((vw-24)/1.36) + "px"); css.setProperty("--k", 0.9); css.setProperty("--pt", "16px"); return; }
+    const PAD = 24;                                   // margen mínimo arriba y abajo
+    const availH = vh - ROW - 2*PAD;
+    const availW = main.clientWidth - 64;
+    // ficha desplegada: foto + ficha (base 571×420 + 252) entran en la pantalla
+    const sc = Math.max(0.6, Math.min(availH / 672, availW / 571, 1.8));
+    css.setProperty("--fw2", Math.round(571*sc) + "px");
+    css.setProperty("--fh2", Math.round(420*sc) + "px");
+    css.setProperty("--k", sc.toFixed(3));
+    css.setProperty("--pt2", Math.max(PAD, Math.round((vh - ROW - 672*sc) / 2)) + "px");
+    // ficha plegada: la foto (+ barra) ocupa todo el alto disponible
+    const barH = Math.max(18, 20*sc);
+    const sc1 = Math.max(sc, Math.min((availH - barH) / 420, availW / 571, 2.4));
+    css.setProperty("--fw", Math.round(571*sc1) + "px");
+    css.setProperty("--fh", Math.round(420*sc1) + "px");
+    css.setProperty("--pt", Math.max(PAD, Math.round((vh - ROW - 420*sc1 - barH) / 2)) + "px");
+  }
+
+  // pila de fotos
+  const STEP = ROW*3;          // recorrido de scroll por foto (celular / barra)
+  let pile = null;
+  function tilt(i){            // giro y corrimiento fijos para cada foto (siempre iguales)
+    const r = Math.sin(i*12.9898 + 4.1)*43758.5453; const a = r - Math.floor(r);
+    const r2 = Math.sin(i*78.233 + 1.7)*12345.678; const b = r2 - Math.floor(r2);
+    return {rot: ((a*2-1)*6).toFixed(2), dx: Math.round((b*2-1)*18), dy: Math.round((a*2-1)*10)};
+  }
+  function updatePile(){
+    if (!pile) return;
+    const k = Math.max(0, Math.min(pile.fotos.length, Math.floor((main.scrollTop + 2) / STEP)));
+    while (pile.shown < k){
+      const i = pile.shown, t = tilt(i);
+      const im = document.createElement("img");
+      const fo = pile.fotos[i], src = typeof fo === "string" ? fo : fo.src;
+      im.src = src; im.alt = (fo && fo.txt) || `${pile.nombre} — foto ${i+1}`; im.decoding = "async";
+      im.style.transform = `translate(-50%,-50%) translate(${t.dx}px,${t.dy}px) rotate(${t.rot}deg)`;
+      pile.el.appendChild(im); pile.shown++;
+    }
+    while (pile.shown > k){ pile.el.lastChild.remove(); pile.shown--; }
+    // descripción de la foto que está arriba de la pila, en la barra azul debajo de la foto
+    const top = pile.shown ? pile.fotos[pile.shown - 1] : null;
+    pile.cap.textContent = top && typeof top === "object" ? (top.txt || "") : "";
+  }
+  main.addEventListener("scroll", updatePile, {passive:true});
+
+  // ruedita / trackpad: una foto por gesto, con pausa, para que no pasen de golpe
+  let acc = 0, lastStep = 0, idleT;
+  main.addEventListener("wheel", e => {
+    if (!pile || window.innerWidth <= 700) return;
+    e.preventDefault();
+    acc += e.deltaMode === 1 ? e.deltaY*40 : e.deltaY;
+    clearTimeout(idleT); idleT = setTimeout(() => acc = 0, 200);
+    const now = performance.now();
+    if (Math.abs(acc) < 60 || now - lastStep < 600) return;
+    const dir = Math.sign(acc); acc = 0; lastStep = now;
+    const k = Math.max(0, Math.min(pile.fotos.length, pile.shown + dir));
+    main.scrollTop = k * STEP;
+    updatePile(); updateBar();
+  }, {passive:false});
+  document.addEventListener("keydown", e => {
+    if (!pile || !["ArrowDown","ArrowUp","PageDown","PageUp"," "].includes(e.key)) return;
+    e.preventDefault();
+    const dir = (e.key === "ArrowUp" || e.key === "PageUp") ? -1 : 1;
+    main.scrollTop = Math.max(0, Math.min(pile.fotos.length, pile.shown + dir)) * STEP;
+  });
+
+  function renderMain(){
+    main.innerHTML = "";
+    pile = null;
+    const L = LUGARES.find(x => x.id === selected);
+    const wrapEl = h("div", "fade");
+    const tb = h("div", "toolbar");
+    wrapEl.appendChild(tb);
+    if (!L){
+      // sin lugar seleccionado: solo la lista de la izquierda sobre la grilla
+      main.style.pointerEvents = "none";
+      updateBar();
+      return;
+    } else {
+      main.style.pointerEvents = "";
+      // en celular la lista se oculta al abrir una ficha: botón para volver
+      const c = h("button", "cerrar solo-movil", "← lugares");
+      c.addEventListener("click", () => select(null));
+      tb.appendChild(c);
+      const img = (src, alt) => src
+        ? `<img src="${src}" alt="${esc(alt)}" loading="lazy" decoding="async">`
+        : `<div class="ph">foto</div>`;
+      // foto principal + ficha técnica, fijas. El scroll no mueve nada:
+      // cada paso apila la foto siguiente encima de la principal, un poco girada.
+      const pin = h("div", "pin");
+      const f = h("article", "ficha");
+      const slot = h("div", "foto", img(L.foto, L.nombre));
+      const pila = h("div", "pila");
+      slot.appendChild(pila);
+      f.appendChild(slot);
+      const rows = [["Nombre", L.nombre], ["Año", L.anio], ["Descripción", L.descripcion],
+                    ["Arquitectos", L.arquitectos], ["Ubicación", L.ubicacion]];
+      // barra azul con flecha: despliega / pliega la ficha técnica
+      const bar = h("div", "barra", `<button class="tg" aria-expanded="false" aria-label="Ver ficha técnica"><svg viewBox="0 0 10 7" width="10" height="7" aria-hidden="true"><path d="M1 1.2 5 5.2 9 1.2" fill="none" stroke="#fff" stroke-width="1.6"/></svg><span class="cap"></span></button>`
+        + (L.linea ? `<a class="masinfo" href="#linea-${L.id}">más info</a>` : ""));
+      const tg = bar.querySelector(".tg");
+      tg.addEventListener("click", () => {
+        const open = f.classList.toggle("abierta");
+        pin.classList.toggle("abierta", open);
+        tg.setAttribute("aria-expanded", open);
+        tg.setAttribute("aria-label", open ? "Ocultar ficha técnica" : "Ver ficha técnica");
+      });
+      f.appendChild(bar);
+      const plegable = h("div", "plegable");
+      plegable.appendChild(h("dl", "tabla", rows.map(([k,v]) =>
+        `<div class="${k === "Descripción" ? "alta" : ""}"><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join("")));
+      f.appendChild(plegable);
+      pin.appendChild(f);
+      wrapEl.appendChild(pin);
+      // espacio de scroll: un paso (una fila de grilla) por foto
+      const pasos = wrapEl.appendChild(h("div", "pasos"));
+      pile = {el: pila, cap: bar.querySelector(".cap"), fotos: L.fotos, nombre: L.nombre, shown: 0, pasos, pin, tabla: f.querySelector(".tabla")};
+    }
+    main.appendChild(wrapEl);
+    fitRows();
+    main.classList.toggle("detalle", !!pile);
+    if (pile) pile.pasos.style.height = (pile.fotos.length * STEP + Math.max(0, main.clientHeight - pile.pin.offsetHeight)) + "px";
+    main.scrollTop = 0;
+    updatePile();
+    updateBar();
+  }
+
+  function updateBar(){
+    const top = ROW, avail = window.innerHeight - top;
+    const sh = main.scrollHeight, ch = main.clientHeight;
+    if (sh <= ch + 2 || getComputedStyle(main).display === "none"){ bar.style.opacity = 0; return; }
+    bar.style.opacity = 1;
+    const hgt = Math.max(60, avail * ch / sh);
+    const y = top + (avail - hgt) * (main.scrollTop / (sh - ch));
+    bar.style.height = hgt + "px"; bar.style.top = y + "px";
+  }
+  main.addEventListener("scroll", updateBar, {passive:true});
+  snapper(main, updateBar);
+  snapper(list, drawLugares);
+
+  function select(id){
+    selected = id;
+    document.body.classList.toggle("sel", !!id);
+    drawLugares();
+    renderMain();
+  }
+
+  /* ---------- rutas ---------- */
+  let buildT0 = null, prevRoute = null;
+  // texto de SOBRE: aparece letra por letra, como una máquina de escribir / un log
+  const sobreP = document.querySelector("#sobre p");
+  const sobreHTML = sobreP.innerHTML;
+  // el texto aparece entero, de golpe, cuando termina de armarse el menú y el logo
+  function escribir(){
+    sobreP.classList.remove("ch"); void sobreP.offsetWidth;
+    sobreP.style.animationDelay = "2.2s";
+    sobreP.classList.add("ch");
+  }
+
+  // ARCHIVO ABIERTO: publicaciones de la comunidad (por ahora de muestra, del frame)
+  const POSTS = [
+    {col:0, autor:"María Gutierrez", foto:"img/b1-calle-artes.jpg", texto:"Calle de las Artes (actual Carlos Pellegrini), Ciudad de Buenos Aires\nAntigua foto postal editada en 1902\nDe mi colección.", likes:22, coment:0, comp:1},
+    {col:0, autor:"Luis Ceballos", foto:"img/b3-aca.jpg", texto:"¿Qué estamos mirando cuando miramos el clásico muñeco del ACA?", likes:46, coment:1, comp:5},
+    {col:0, autor:"Griselda Nuñez", foto:"img/b5-estacion.jpg", texto:"Estación San Francisco Solano\nEx Parada km 46,139\nFoto: A.H. de la Provincia\nInaugurada en 1926 y clausurada en 1977", likes:75, coment:0, comp:3},
+    {col:1, autor:"Lucas Fernández", foto:"img/b2-kavanagh.jpg", texto:"Plaza San Martín y el Kavanagh (1939)", likes:13, coment:0, comp:4, mayus:true},
+    {col:1, autor:"Griselda Nuñez", foto:"img/b4-palacio.jpg", texto:"Espléndido ejemplo de supervivencia del Patrimonio Arquitectónico en nuestro continente. Desde los años 1930 hasta los 50s y 60s, en Buenos Aires y Nueva York se produjeron transformaciones urbanas impactantes, surgieron demoliciones y remodelaciones sufridas por el incesante avance de la modernidad. Docenas de palacios y mansiones desaparecieron dando paso a edificios contemporáneos.", likes:32, coment:3, comp:8}
+  ];
+  const ICO = {
+    like:'<svg viewBox="0 0 24 24"><path d="M7 10v11H3V10h4zm0 0 4-7c1.7 0 2.6 1.2 2.3 2.8L12.8 9H19a2 2 0 0 1 2 2.3l-1.2 7.4A2.6 2.6 0 0 1 17.2 21H7"/></svg>',
+    coment:'<svg viewBox="0 0 24 24"><path d="M12 3a9 8 0 1 0 4.2 15L21 20l-1.3-4.2A8 8 0 0 0 21 11a9 8 0 0 0-9-8z"/></svg>',
+    comp:'<svg viewBox="0 0 24 24"><path d="M14 4l7 7-7 7v-4c-5 0-8 1.5-11 5 1-6 4-10 11-10V4z"/></svg>'
+  };
+  // CONTACTAR: un aporte nuevo se suma arriba del Archivo abierto (solo en esta visita: no se guarda ni se envía)
+  const form = document.querySelector(".ct-form");
+  const fotosBox = form.querySelector(".ct-fotos"), msg = form.querySelector(".ct-msg");
+  let fotosNuevas = [];
+  form.querySelector('input[type=file]').addEventListener("change", e => {
+    [...e.target.files].filter(f => f.type.startsWith("image/")).slice(0, 6 - fotosNuevas.length).forEach(f => {
+      const url = URL.createObjectURL(f); fotosNuevas.push(url);
+      const fig = h("figure", "", `<img src="${url}" alt="${esc(f.name)}"><button type="button" aria-label="Quitar imagen">×</button>`);
+      fig.querySelector("button").addEventListener("click", () => { fotosNuevas = fotosNuevas.filter(u => u !== url); fig.remove(); });
+      fotosBox.appendChild(fig);
+    });
+    e.target.value = "";
+  });
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+    const nombre = form.nombre.value.trim(), texto = form.texto.value.trim();
+    if (!nombre){ msg.textContent = "Falta tu nombre."; form.nombre.focus(); return; }
+    if (!texto && !fotosNuevas.length){ msg.textContent = "Escribí algo o sumá una imagen."; form.texto.focus(); return; }
+    form.reset(); fotosBox.innerHTML = ""; fotosNuevas = []; msg.textContent = "";
+    document.querySelector(".ct").classList.add("enviado");
+    document.getElementById("contactar").scrollTop = 0;
+  });
+
+  document.querySelector(".ct-otro").addEventListener("click", () => document.querySelector(".ct").classList.remove("enviado"));
+
+  // BLOG: subir un post (se suma arriba del archivo; solo en esta visita)
+  const bForm = document.querySelector(".bl-form"), bBtn = document.querySelector(".bl-nuevo");
+  const bFotos = bForm.querySelector(".ct-fotos"), bMsg = bForm.querySelector(".ct-msg");
+  let bUrls = [];
+  const abrirForm = on => { bForm.hidden = !on; bBtn.setAttribute("aria-expanded", on); if (on) bForm.nombre.focus(); };
+  bBtn.addEventListener("click", () => abrirForm(bForm.hidden));
+  bForm.querySelector(".bl-cancelar").addEventListener("click", () => { bForm.reset(); bFotos.innerHTML = ""; bUrls = []; bMsg.textContent = ""; abrirForm(false); });
+  bForm.querySelector('input[type=file]').addEventListener("change", e => {
+    [...e.target.files].filter(f => f.type.startsWith("image/")).slice(0, 6 - bUrls.length).forEach(f => {
+      const url = URL.createObjectURL(f); bUrls.push(url);
+      const fig = h("figure", "", `<img src="${url}" alt="${esc(f.name)}"><button type="button" aria-label="Quitar imagen">×</button>`);
+      fig.querySelector("button").addEventListener("click", () => { bUrls = bUrls.filter(u => u !== url); fig.remove(); });
+      bFotos.appendChild(fig);
+    });
+    e.target.value = "";
+  });
+  bForm.addEventListener("submit", e => {
+    e.preventDefault();
+    const nombre = bForm.nombre.value.trim(), texto = bForm.texto.value.trim();
+    if (!nombre){ bMsg.textContent = "Falta tu nombre."; bForm.nombre.focus(); return; }
+    if (!texto && !bUrls.length){ bMsg.textContent = "Escribí algo o sumá una imagen."; bForm.texto.focus(); return; }
+    POSTS.unshift({col:0, autor:nombre, fotos:bUrls.slice(), texto, likes:0, coment:0, comp:0, nuevo:true});
+    bForm.reset(); bFotos.innerHTML = ""; bUrls = []; bMsg.textContent = ""; abrirForm(false);
+    blogHecho = false; renderBlog();
+    document.getElementById("blog").scrollTop = 0;
+  });
+
+  let blogHecho = false;
+  function renderBlog(){
+    if (blogHecho) return; blogHecho = true;
+    const cols = document.querySelector("#blog .bl-cols");
+    cols.innerHTML = "";
+    const c = [h("div","bl-col"), h("div","bl-col")]; c.forEach(x => cols.appendChild(x));
+    POSTS.forEach(p => {
+      const media = p.fotos ? (p.fotos.length ? `<div class="post-fotos">${p.fotos.map(u => `<img src="${u}" alt="">`).join("")}</div>` : "")
+                            : `<img src="${p.foto}" alt="${esc(p.texto.split("\n")[0])}" loading="lazy">`;
+      const el2 = h("article","post" + (p.nuevo ? " post-nuevo" : ""),
+        `<div class="post-card"><div class="post-autor">${esc(p.autor)}</div>${media}<p class="post-txt"${p.mayus ? ' style="text-transform:uppercase;padding-left:26px"' : ""}>${esc(p.texto)}</p></div>
+         <div class="post-acc">
+           <button class="like" aria-label="Me gusta">${ICO.like}<span>${p.likes}</span></button>
+           <button aria-label="Comentarios">${ICO.coment}<span>${p.coment}</span></button>
+           <button aria-label="Compartir">${ICO.comp}<span>${p.comp}</span></button>
+         </div>`);
+      const lk = el2.querySelector(".like");
+      lk.addEventListener("click", () => { const on = lk.classList.toggle("on"); lk.querySelector("span").textContent = p.likes + (on ? 1 : 0); });
+      c[p.col].appendChild(el2);
+    });
+  }
+
+  // página de línea de tiempo de un lugar
+  function renderLinea(L){
+    const d = L.linea, box = document.getElementById("linea");
+    const img = (src, alt) => src ? `<img src="${src}" alt="${esc(alt)}" loading="lazy" decoding="async">` : `<div class="ph">foto</div>`;
+    box.innerHTML = `<div class="lt">
+      <a class="lt-volver" href="#catalogo">← catálogo</a>
+      <h1 class="lt-titulo">${esc(L.nombre)}</h1>
+      <div class="lt-portada">${img(d.portada, L.nombre)}</div>
+      ${d.intro ? `<p class="lt-intro">[${esc(d.intro)}]</p>` : `<div class="lt-intro"></div>`}
+      ${d.items.map(it => `<section class="lt-item">
+        <figure class="lt-foto">${img(it.foto, it.pie || it.titulo)}${it.pie ? `<figcaption class="lt-pie">[ ${esc(it.pie)} ]</figcaption>` : ""}</figure>
+        <div class="lt-txt"><div class="lt-anio">/${esc(it.anio)}</div><h2 class="lt-tit">${esc(it.titulo)}</h2><p class="lt-cuerpo">${esc(it.texto)}</p></div>
+      </section>`).join("")}
+    </div>`;
+    box.scrollTop = 0;
+    box.querySelector(".lt-volver").addEventListener("click", () => { selected = L.id; document.body.classList.add("sel"); });
+  }
+
+
+  /* ---------- BUSCADOR ---------- */
+  // datos para filtrar (barrio, tipología, qué hay hoy) — completar al sumar lugares
+  const FILTRO = {
+    "penitenciaria-nacional":      {barrio:"Palermo",      tipo:"Penitenciario", hoyTipo:"Plaza / parque"},
+    "pabellon-argentino":          {barrio:"Retiro",       tipo:"Exposición",    hoyTipo:"Plaza / parque"},
+    "iglesia-san-nicolas-de-bari": {barrio:"San Nicolás",  tipo:"Religioso",     hoyTipo:"Avenida / monumento"},
+    "palacio-unzue":               {barrio:"Recoleta",     tipo:"Residencial",   hoyTipo:"Edificio público"},
+    "palacio-miro":                {barrio:"San Nicolás",  tipo:"Residencial",   hoyTipo:"Plaza / parque"},
+    "cementerio-sud":              {barrio:"Parque Patricios", tipo:"Funerario", hoyTipo:null}
+  };
+  const anioNum = t => { const m = String(t || "").match(/\d{4}/); return m ? +m[0] : null; };
+  const BU = LUGARES.map(L => {
+    const f = FILTRO[L.id] || {};
+    const ini = anioNum(L.anio.split("-")[0]), des = anioNum(fin(L));
+    return Object.assign({L, ini, des, siglo: ini ? "Siglo " + ["XVII","XVIII","XIX","XX"][Math.floor((ini - 1)/100) - 16] : null}, f);
+  });
+  const desAnios = BU.map(b => b.des).filter(Boolean);
+  const DES_MIN = Math.floor(Math.min(...desAnios)/10)*10, DES_MAX = Math.ceil(Math.max(...desAnios)/10)*10;
+  const buSel = {barrio:new Set(), tipo:new Set(), hoyTipo:new Set(), siglo:new Set()};
+  const buQ = document.getElementById("bu-q"), buD = document.getElementById("bu-desde"), buH = document.getElementById("bu-hasta"), buLin = document.getElementById("bu-linea");
+  buD.min = buH.min = DES_MIN; buD.max = buH.max = DES_MAX; buD.value = DES_MIN; buH.value = DES_MAX;
+  const sinTilde = t => String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  function pasa(b, salvo){
+    const q = sinTilde(buQ.value.trim());
+    if (q && !sinTilde([b.L.nombre, b.L.arquitectos, b.L.descripcion, b.L.hoy, b.barrio].join(" ")).includes(q)) return false;
+    for (const k in buSel) if (k !== salvo && buSel[k].size && !buSel[k].has(b[k])) return false;
+    const d = +buD.value, h = +buH.value;
+    if ((d > DES_MIN || h < DES_MAX) && !(b.des && b.des >= d && b.des <= h)) return false;
+    if (buLin.checked && !b.L.linea) return false;
+    return true;
+  }
+  function renderBuscador(){
+    // chips: cada opción muestra cuántos resultados daría con el resto de los filtros
+    document.querySelectorAll(".bu-chips").forEach(box => {
+      const k = box.dataset.f;
+      const ops = [...new Set(BU.map(b => b[k]).filter(Boolean))].sort((a, b) => k === "siglo" ? Math.min(...BU.filter(x => x.siglo === a).map(x => x.ini)) - Math.min(...BU.filter(x => x.siglo === b).map(x => x.ini)) : a.localeCompare(b, "es"));
+      box.innerHTML = ops.map(o => {
+        const n = BU.filter(b => b[k] === o && pasa(b, k)).length;
+        return `<button type="button" class="bu-chip${buSel[k].has(o) ? " on" : ""}" data-v="${o}"${!n && !buSel[k].has(o) ? " disabled" : ""}>${o}<small>${n}</small></button>`;
+      }).join("");
+    });
+    const res = BU.filter(b => pasa(b));
+    document.getElementById("bu-cuenta").textContent = res.length + (res.length === 1 ? " lugar" : " lugares");
+    document.getElementById("bu-res").innerHTML = res.length ? res.map(b => `
+      <article class="bu-card">
+        <div class="bu-foto${b.L.foto ? "" : " vacia"}"${b.L.foto ? ` style="background-image:url('${b.L.foto}')"` : ""}></div>
+        <div class="bu-info">
+          <h4>${b.L.nombre}</h4>
+          <div class="bu-anio">${b.L.anio}</div>
+          <div class="bu-meta">${b.barrio ? `<b>${b.barrio}</b>` : ""}${b.tipo ? ` · ${b.tipo}` : ""}${b.L.hoy && b.L.hoy !== "—" ? `<br>hoy: ${b.L.hoy}` : ""}</div>
+        </div>
+        <div class="bu-acc"><button type="button" data-ficha="${b.L.id}">Ver ficha</button><button type="button" data-mapa="${b.L.id}">Ver en mapa</button></div>
+      </article>`).join("") : `<div class="bu-nada">No hay lugares con esos filtros.</div>`;
+  }
+  document.querySelector(".bu-filtros").addEventListener("click", e => {
+    const c = e.target.closest(".bu-chip"); if (!c || c.disabled) return;
+    const k = c.parentNode.dataset.f, v = c.dataset.v;
+    buSel[k].has(v) ? buSel[k].delete(v) : buSel[k].add(v);
+    renderBuscador();
+  });
+  [buQ, buD, buH, buLin].forEach(i => i.addEventListener("input", renderBuscador));
+  document.getElementById("bu-limpiar").addEventListener("click", () => {
+    for (const k in buSel) buSel[k].clear();
+    buQ.value = ""; buD.value = DES_MIN; buH.value = DES_MAX; buLin.checked = false; renderBuscador();
+  });
+  document.getElementById("bu-res").addEventListener("click", e => {
+    const f = e.target.closest("[data-ficha]"), m = e.target.closest("[data-mapa]");
+    if (f){ location.hash = "catalogo"; setTimeout(() => select(f.dataset.ficha), 50); }
+    if (m){ window.__mapaPend = m.dataset.mapa; location.hash = "mapa"; if (window.__mapaIr) setTimeout(() => window.__mapaIr(m.dataset.mapa), 50); }
+  });
+  window.__selLugar = id => select(id);
+  let mapaEstado = 0;
+  function cargarScript(src){ return new Promise((ok, mal) => { const t = document.createElement("script"); t.src = src; t.onload = ok; t.onerror = mal; document.head.appendChild(t); }); }
+  function cargarMapa(){
+    if (mapaEstado === 2){ window.__mapaActivar && window.__mapaActivar(); return; }
+    if (mapaEstado === 1) return;
+    mapaEstado = 1;
+    const T = "https://cdn.jsdelivr.net/npm/three@0.128.0/";
+    cargarScript(T + "build/three.min.js")
+      .then(() => Promise.all([cargarScript(T + "examples/js/controls/OrbitControls.js"), cargarScript(T + "examples/js/utils/BufferGeometryUtils.js"), cargarScript("mapa-data.js")]))
+      .then(() => cargarScript("mapa.js"))
+      .then(() => { mapaEstado = 2; const c = document.getElementById("mapa-cargando"); if (c) c.remove(); })
+      .catch(() => { mapaEstado = 0; document.getElementById("mapa-cargando").textContent = "no se pudo cargar el mapa"; });
+  }
+  function onRoute(){
+    const r = location.hash.replace("#", "");
+    const lin = r.startsWith("linea-") ? LUGARES.find(x => "linea-" + x.id === r && x.linea) : null;
+    route = lin ? "linea" : (["catalogo","sobre","blog","contactar","mapa","buscador"].includes(r) ? r : "");
+    document.body.classList.toggle("r-contactar", route === "contactar");
+    if (route === "contactar") document.querySelector(".ct").classList.remove("enviado");
+    document.body.classList.toggle("r-blog", route === "blog");
+    document.body.classList.toggle("r-mapa", route === "mapa");
+    document.body.classList.toggle("r-buscador", route === "buscador");
+    if (route === "buscador") renderBuscador();
+    if (route === "mapa") cargarMapa();
+    if (route === "blog") renderBlog();
+    document.body.classList.toggle("r-linea", route === "linea");
+    if (lin) renderLinea(lin);
+    document.body.classList.toggle("r-catalogo", route === "catalogo");
+    document.body.classList.toggle("r-sobre", route === "sobre");
+    if (route === "sobre" && prevRoute !== "sobre"){ buildT0 = performance.now(); mostrarTexto(0); }
+    prevRoute = route;
+    drawStage();
+    if (route === "catalogo"){ drawLugares(); renderMain(); }
+  }
+  function redraw(){ drawStage(); if (route === "catalogo"){ drawLugares(); fitRows(); updateBar(); } }
+
+  // la pantalla actual se va hacia arriba (o abajo) y la nueva entra desde el otro lado, como un scroll
+  function deslizar(dir, cambiar){
+    const snap = document.createElement("div");
+    snap.className = "snap";
+    const copia = svg.cloneNode(true);
+    // la copia queda quieta: sin módulos animados y con el logo ya armado
+    copia.querySelectorAll(".mods, .mb").forEach(n => n.remove());
+    copia.querySelectorAll(".anim").forEach(n => n.classList.remove("anim"));
+    copia.querySelectorAll("[style*='animation']").forEach(n => n.style.animation = "none");
+    snap.appendChild(copia);
+    if (route === "sobre"){ const sb = document.getElementById("sobre").cloneNode(true); sb.removeAttribute("id"); sb.className = "sobre-snap"; snap.appendChild(sb); }
+    document.body.appendChild(snap);
+    cambiar();
+    // se superpone: hacia abajo la página nueva sube y tapa a la anterior (que queda quieta);
+    // hacia arriba la página actual baja y descubre la anterior
+    const opt = {duration: 800, easing: "cubic-bezier(.65,0,.35,1)"};
+    if (dir > 0){
+      snap.classList.add("debajo");
+      [stage, document.getElementById("sobre")].forEach(e => e.animate([{transform:"translateY(100vh)"},{transform:"translateY(0)"}], opt));
+      setTimeout(() => snap.remove(), 820);
+    } else {
+      snap.animate([{transform:"translateY(0)"},{transform:"translateY(100vh)"}], opt).onfinish = () => snap.remove();
+    }
+    if (dir > 0) buildT0 = performance.now() + 500;   // el logo chico se arma cuando la pantalla ya llegó
+  }
+
+  // SOBRE tiene tres textos: el scroll pasa de uno a otro con el menú fijo
+  const textos = [...document.querySelectorAll("#sobre p")];
+  let tIdx = 0;
+  function mostrarTexto(i){ textos.forEach((p, k) => { p.classList.toggle("act", k === i); p.classList.remove("sale"); }); tIdx = i; }
+  function cambiarTexto(dir){
+    const viejo = textos[tIdx], nuevo = textos[tIdx + dir];
+    const h = window.innerHeight;
+    const opt = {duration: 800, easing: "cubic-bezier(.65,0,.35,1)"};
+    viejo.classList.add("sale"); viejo.classList.remove("act");
+    nuevo.classList.add("act");
+    viejo.animate([{transform:"translateY(0)"},{transform:`translateY(${-dir*h}px)`}], opt).onfinish = () => viejo.classList.remove("sale");
+    nuevo.animate([{transform:`translateY(${dir*h}px)`},{transform:"translateY(0)"}], opt);
+    tIdx += dir;
+  }
+
+  /* inicio → scroll hacia abajo → SOBRE; en SOBRE, scroll hacia arriba vuelve al inicio */
+  let navLock = 0;
+  function gesto(dir){
+    const now = performance.now();
+    if (now < navLock) return;
+    if (dir < 0) return;   // solo se avanza: scrollear hacia arriba no vuelve atrás
+    if (route === "sobre" && tIdx < textos.length - 1){ navLock = now + 1000; cambiarTexto(1); return; }
+    if (route === "" && dir > 0){ navLock = now + 1000; deslizar(1, () => { history.pushState(null, "", "#sobre"); onRoute(); }); }
+    else if (route === "sobre" && dir < 0){ navLock = now + 1000; deslizar(-1, () => { history.replaceState(null, "", location.pathname + location.search); onRoute(); }); }
+  }
+  window.addEventListener("wheel", e => { if (Math.abs(e.deltaY) > 8) gesto(Math.sign(e.deltaY)); }, {passive:true});
+  let ty0 = null;
+  window.addEventListener("touchstart", e => { ty0 = e.touches[0].clientY; }, {passive:true});
+  window.addEventListener("touchend", e => { if (ty0 === null) return; const dy = ty0 - e.changedTouches[0].clientY; if (Math.abs(dy) > 40) gesto(Math.sign(dy)); ty0 = null; }, {passive:true});
+  window.addEventListener("keydown", e => {
+    if (route === "catalogo") return;
+    if (["ArrowDown","PageDown"," "].includes(e.key)) gesto(1);
+    if (["ArrowUp","PageUp"].includes(e.key)) gesto(-1);
+  });
+
+  window.addEventListener("hashchange", onRoute);
+  let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(redraw, 80); });
+  // si se desliza el menú de costado en pantallas angostas, la columna sigue a la grilla
+  stage.addEventListener("scroll", () => {
+    const sc = parseFloat(svg.getAttribute("width")) / 2;
+    view.cx = sc - stage.scrollLeft;
+    if (route) drawLugares();
+  }, {passive:true});
+  onRoute();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(redraw);
+})();
+</script>
+</body>
+</html>
